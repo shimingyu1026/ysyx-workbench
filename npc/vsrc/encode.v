@@ -17,7 +17,7 @@ module encode42(x,en,y);
   end
 endmodule
 
-module encode42_p(x,en,y);
+module encode42_p (x,en,y);
   input  [3:0] x;
   input  en;
   output reg [1:0]y;
