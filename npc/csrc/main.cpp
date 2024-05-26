@@ -5,42 +5,64 @@
 #include "Vtop.h"
 #include "verilated_vcd_c.h"
 #include "verilated.h"
-//static TOP_NAME dut;
-static Vtop top;
-void nvboard_bind_all_pins(Vtop* top);
+// static TOP_NAME top;
+VerilatedContext *contextp = NULL;
+Vtop *top = NULL;
+VerilatedVcdC *tfp = NULL;
 
-int main(int argc, char** argv) {
+// void nvboard_bind_all_pins(Vtop *top);
+void sim_init(int argc, char **argv);
 
-	//VerilatedContext* contextp = new VerilatedContext;
-	//contextp->commandArgs(argc, argv);
-	//Vtop* top = new Vtop{contextp};
+/*
+void single_cycle(Vtop* top) {
+  top->clk = 0; top->eval();
+  top->clk = 1; top->eval();
+}
 
+void reset(int n, Vtop* top) {
+  top->rst = 1;
+  while (n -- > 0) single_cycle(top);
+  top->rst = 0;
+}
+*/
 
-	//VerilatedVcdC* tfp = new VerilatedVcdC; //初始化VCD对象指针
-	//contextp->traceEverOn(true); //打开追踪功能
-	//top->trace(tfp, 0); //
-	//tfp->open("wave.vcd"); //设置输出的文件wave.vcd
+int main(int argc, char **argv)
+{
 
+	sim_init(argc, argv);
 
+	// nvboard_bind_all_pins(top);
 
-	nvboard_bind_all_pins(&top);
-	nvboard_init();
-//!contextp->gotFinish()
-	while (1) {
-		//int a = rand() & 1;
-		//int b = rand() & 1;
-		//top->a = a;
-		//top->b = b;
-		//top->eval();
-		//printf("a = %d, b = %d, f = %d\n", a, b, top->f);
-		//tfp->dump(contextp->time()); //dump wave
-		//contextp->timeInc(1); //推动仿真时间
-		//assert(top->f == (a ^ b));
-		nvboard_update();
+	// nvboard_init();
+
+	while (1) //! contextp->gotFinish()
+	{
+
+		/**/
+		top->x = rand() % 16;
+		top->en = 1;
+
+		top->eval();
+		contextp->timeInc(1);		 // 推动仿真时间
+		tfp->dump(contextp->time()); // dump wave
+
+		top->eval();
+		// nvboard_update();
 	}
-	//delete top;
-	//tfp->close();
-	//delete contextp;
-	nvboard_quit();
+	delete top;
+	tfp->close();
+	delete contextp;
+	// nvboard_quit();
 	return 0;
+}
+
+void sim_init(int argc, char **argv)
+{
+	contextp = new VerilatedContext;
+	contextp->commandArgs(argc, argv);
+	top = new Vtop{contextp};
+	tfp = new VerilatedVcdC;	 // 初始化VCD对象指针
+	contextp->traceEverOn(true); // 打开追踪功能
+	top->trace(tfp, 0);			 //
+	tfp->open("wave.vcd");		 // 设置输出的文件wave.vcd
 }
