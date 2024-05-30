@@ -1,20 +1,21 @@
 module top(
-  input [3:0] x,
-  input en,
-  output reg [1:0] y
-
+    input [3:0]a,
+    input [3:0]b,
+    input add_sub,
+    output carry,
+    output zero,
+    output overflow,
+    output [3:0] result
 );
-encode42_p enc42(
-  .x(x),
-  .en(en),
-  .y(y)
+addsub addsub1(
+    .a(a),
+    .b(b),
+    .add_sub(add_sub),
+    .carry(carry),
+    .zero(zero),
+    .overflow(overflow),
+    .result(result)
 );
-
-
-
-
-
-
 
 
 

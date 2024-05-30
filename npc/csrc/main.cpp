@@ -5,7 +5,6 @@
 #include "Vtop.h"
 #include "verilated_vcd_c.h"
 #include "verilated.h"
-// static TOP_NAME top;
 VerilatedContext *contextp = NULL;
 Vtop *top = NULL;
 VerilatedVcdC *tfp = NULL;
@@ -37,17 +36,16 @@ int main(int argc, char **argv)
 
 	while (1) //! contextp->gotFinish()
 	{
-
-		/**/
-		top->x = rand() % 16;
-		top->en = 1;
+		top->a = 0;
+		top->b = 0;
+		top->add_sub = 1;
 
 		top->eval();
 		contextp->timeInc(1);		 // 推动仿真时间
 		tfp->dump(contextp->time()); // dump wave
-
-		top->eval();
-		// nvboard_update();
+									 /*
+											top->eval();
+										   nvboard_update();*/
 	}
 	delete top;
 	tfp->close();
