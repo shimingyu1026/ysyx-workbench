@@ -25,7 +25,7 @@ typedef concat(__GUEST_ISA__, _CPU_state) CPU_state;
 typedef concat(__GUEST_ISA__, _ISADecodeInfo) ISADecodeInfo;
 
 // monitor
-extern unsigned char isa_logo[]; //用于在未实现指令的报错信息中提示开发者阅读相关的手册.
+extern unsigned char isa_logo[];
 void init_isa();
 
 // reg
@@ -56,4 +56,3 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc);
 void isa_difftest_attach();
 
 #endif
-
