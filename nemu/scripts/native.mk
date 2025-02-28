@@ -23,13 +23,15 @@ compile_git:
 $(BINARY):: compile_git
 
 # Some convenient rules
-
+# 如果用户在命令行中传递了 ARGS，则会覆盖这里设置的默认值
 override ARGS ?= --log=$(BUILD_DIR)/nemu-log.txt
 override ARGS += $(ARGS_DIFF)
 
 # Command to execute NEMU
 IMG ?=
-NEMU_EXEC := $(BINARY) $(ARGS) $(IMG)
+NEMU_EXEC := $(BINARY) $(ARGS) $(IMG) 
+#定义变量 NEMU_EXEC，用于保存执行 NEMU 的完整命令。
+#$(BINARY) 编译出的文件
 
 run-env: $(BINARY) $(DIFF_REF_SO)
 

@@ -12,7 +12,7 @@
 #
 # See the Mulan PSL v2 for more details.
 #**************************************************************************************/
-
+# 颜色开始 复位
 COLOR_RED := $(shell echo "\033[1;31m")
 COLOR_END := $(shell echo "\033[0m")
 
@@ -20,9 +20,9 @@ ifeq ($(wildcard .config),)
 $(warning $(COLOR_RED)Warning: .config does not exist!$(COLOR_END))
 $(warning $(COLOR_RED)To build the project, first run 'make menuconfig'.$(COLOR_END))
 endif
-
-Q            := @
-KCONFIG_PATH := $(NEMU_HOME)/tools/kconfig
+#Q：用于静默模式，不输出命令行。
+Q            := @ 
+KCONFIG_PATH := $(NEMU_HOME)/tools/kconfig 
 FIXDEP_PATH  := $(NEMU_HOME)/tools/fixdep
 Kconfig      := $(NEMU_HOME)/Kconfig
 rm-distclean += include/generated include/config .config .config.old
