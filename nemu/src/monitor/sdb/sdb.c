@@ -17,7 +17,9 @@
 #include <cpu/cpu.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <memory/vaddr.h>
 #include "sdb.h"
+#include "expr.h"
 
 static int is_batch_mode = false;
 
@@ -49,7 +51,65 @@ static int cmd_c(char *args) {
 
 
 static int cmd_q(char *args) {
+  nemu_state.state = NEMU_QUIT;
   return -1;
+}
+
+static int cmd_info(char *args)
+{
+  if (!args)
+  {
+    printf("please input r or w\n");
+    return 0;
+  }
+  if (!strcmp(args, "r"))
+  {
+    isa_reg_display();
+    return 0;
+  }
+  if (!strcmp(args, "w"))
+  {
+    printf("watchpoint is to be implemented\n");
+    return 0;
+  }
+  return 0;
+}
+static int cmd_si(char *args)
+{
+  int n;
+  if (!args)
+  {
+    printf("excute one step by default\n");
+    cpu_exec(1);
+    return 0;
+  }
+  n = atoi(args); // 将字符串 str 转换为 int 类型整数。
+  printf("excute %d steps\n", n);
+  cpu_exec(n);
+  return 0;
+}
+static int cmd_x(char *args)
+{
+  char *num_s = strtok(args, " ");
+  char *addr_s = strtok(NULL, " ");
+  int num = atoi(num_s);
+  int addr;
+  addr = expr(addr_s, NULL);
+  printf("dump memory %d %08x\n", num, addr);
+  for (int i = 0; i < num; i++)
+  {
+    printf("%08x: %08x\n", addr, vaddr_read(addr, 4));
+    addr += 4;
+  }
+  return 0;
+}
+
+static int cmd_p(char *args)
+{
+  int res = expr(args, NULL);
+  printf("result is %d in dec\n", res);
+  printf("result is %08x in hex\n", res);
+  return 0;
 }
 
 static int cmd_help(char *args);
@@ -58,12 +118,16 @@ static struct {
   const char *name;
   const char *description;
   int (*handler) (char *);
-} cmd_table [] = {
-  { "help", "Display information about all supported commands", cmd_help },
-  { "c", "Continue the execution of the program", cmd_c },
-  { "q", "Exit NEMU", cmd_q },
+} cmd_table[] = {
+    {"help", "Display information about all supported commands", cmd_help},
+    {"c", "Continue the execution of the program", cmd_c},
+    {"q", "Exit NEMU", cmd_q},
+    {"info", "Display information about all supported commands", cmd_info},
+    {"si", "step by step", cmd_si},
+    {"x", "dump memory", cmd_x},
+    {"p", "print result", cmd_p}
 
-  /* TODO: Add more commands */
+    /* TODO: Add more commands */
 
 };
 
@@ -104,8 +168,10 @@ void sdb_mainloop() {
 
   for (char *str; (str = rl_gets()) != NULL; ) {
     char *str_end = str + strlen(str);
+    // 计算输入结束位置：str_end 指向输入字符串的末尾（\0 之后）。
 
     /* extract the first token as the command */
+    // 提取第一个 token 作为命令名
     char *cmd = strtok(str, " ");
     if (cmd == NULL) { continue; }
 

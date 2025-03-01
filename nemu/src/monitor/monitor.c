@@ -32,8 +32,6 @@ static void welcome() {
   Log("Build time: %s, %s", __TIME__, __DATE__);
   printf("Welcome to %s-NEMU!\n", ANSI_FMT(str(__GUEST_ISA__), ANSI_FG_YELLOW ANSI_BG_RED));
   printf("For help, type \"help\"\n");
-  Log("Exercise: Please remove me in the source code and compile NEMU again.");
-  assert(0);
 }
 
 #ifndef CONFIG_TARGET_AM
@@ -69,6 +67,15 @@ static long load_img() {
 }
 
 static int parse_args(int argc, char *argv[]) {
+  /*
+  struct option：用于定义长选项的结构体。
+  第一个字段是长选项的名称（如 "batch"）。
+  第二个字段指定该选项是否需要参数：
+  no_argument：不需要参数。
+  required_argument：需要参数。
+  第三个字段是一个指针，用于存储选项的状态（这里未使用，设置为 NULL）。
+  第四个字段是对应的短选项字符（如 'b'）。
+  */
   const struct option table[] = {
     {"batch"    , no_argument      , NULL, 'b'},
     {"log"      , required_argument, NULL, 'l'},
@@ -78,6 +85,17 @@ static int parse_args(int argc, char *argv[]) {
     {0          , 0                , NULL,  0 },
   };
   int o;
+  /*
+  getopt_long：用于解析命令行参数，支持长选项和短选项。
+  argc 和 argv 是命令行参数。
+  "-bhl:d:p:" 是短选项字符串，表示支持的短选项：
+  -b：无参数。
+  -h：无参数。
+  -l：需要参数。
+  -d：需要参数。
+  -p：需要参数。
+  table 是长选项表。
+  NULL：用于存储当前解析的长选项的索引（这里未使用）。*/
   while ( (o = getopt_long(argc, argv, "-bhl:d:p:", table, NULL)) != -1) {
     switch (o) {
       case 'b': sdb_set_batch_mode(); break;
@@ -98,7 +116,7 @@ static int parse_args(int argc, char *argv[]) {
   return 0;
 }
 
-void init_monitor(int argc, char *argv[]) {
+void init_monitor(int argc, char *argv[]) { //$(ARGS) $(IMG)
   /* Perform some global initialization. */
 
   /* Parse arguments. */
