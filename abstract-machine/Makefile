@@ -26,6 +26,7 @@ endif
 
 ### Check: environment variable `$ARCH` must be in the supported list
 ARCHS = $(basename $(notdir $(shell ls $(AM_HOME)/scripts/*.mk)))
+### 列出 $AM_HOME/scripts 目录下所有以 .mk 结尾文件的基名（去掉后缀），作为支持的架构列表。
 ifeq ($(filter $(ARCHS), $(ARCH)), )
   $(error Expected $$ARCH in {$(ARCHS)}, Got "$(ARCH)")
 endif
@@ -34,6 +35,9 @@ endif
 ARCH_SPLIT = $(subst -, ,$(ARCH))
 ISA        = $(word 1,$(ARCH_SPLIT))
 PLATFORM   = $(word 2,$(ARCH_SPLIT))
+### ISA = $(word 1, $(ARCH_SPLIT))：获取第一个部分作为指令集架构（ISA）。
+### PLATFORM = $(word 2, $(ARCH_SPLIT))：获取第二个部分作为平台。
+
 
 ### Check if there is something to build
 ifeq ($(flavor SRCS), undefined)
@@ -48,12 +52,17 @@ endif
 ### Create the destination directory (`build/$ARCH`)
 WORK_DIR  = $(shell pwd)
 DST_DIR   = $(WORK_DIR)/build/$(ARCH)
-$(shell mkdir -p $(DST_DIR))
+$(shell mkdir -p $(DST_DIR)) 
+### 创建一个名为 DST_DIR 的目录，如果目录不存在，则创建它。
 
 ### Compilation targets (a binary image or archive)
 IMAGE_REL = build/$(NAME)-$(ARCH)
 IMAGE     = $(abspath $(IMAGE_REL))
 ARCHIVE   = $(WORK_DIR)/build/$(NAME)-$(ARCH).a
+### IMAGE_REL = build/$(NAME)-$(ARCH)：设置相对路径的镜像文件名。
+### IMAGE = $(abspath $(IMAGE_REL))：获取镜像文件的绝对路径。
+### ARCHIVE = $(WORK_DIR)/build/$(NAME)-$(ARCH).a：设置静态库文件的路径。
+
 
 ### Collect the files to be linked: object files (`.o`) and libraries (`.a`)
 OBJS      = $(addprefix $(DST_DIR)/, $(addsuffix .o, $(basename $(SRCS))))
@@ -62,6 +71,10 @@ LINKAGE   = $(OBJS) \
   $(addsuffix -$(ARCH).a, $(join \
     $(addsuffix /build/, $(addprefix $(AM_HOME)/, $(LIBS))), \
     $(LIBS) ))
+
+### OBJS = ...：生成目标文件列表，将源文件 SRCS 转换为 .o 文件，并添加目标目录前缀。
+### LIBS := $(sort $(LIBS) am klib)：添加默认库 am 和 klib，并对库列表进行排序。
+### LINKAGE = ...：设置链接目标，将目标文件和库文件组合成一个列表。
 
 ## 3. General Compilation Flags
 
@@ -78,6 +91,7 @@ READELF   = $(CROSS_COMPILE)readelf
 ### Compilation flags
 INC_PATH += $(WORK_DIR)/include $(addsuffix /include/, $(addprefix $(AM_HOME)/, $(LIBS)))
 INCFLAGS += $(addprefix -I, $(INC_PATH))
+### 生成包含路径的编译器标志，格式为 -I/path/to/include。
 
 ARCH_H := arch/$(ARCH).h
 CFLAGS   += -O2 -MMD -Wall -Werror $(INCFLAGS) \
@@ -88,8 +102,13 @@ CFLAGS   += -O2 -MMD -Wall -Werror $(INCFLAGS) \
             -fno-asynchronous-unwind-tables -fno-builtin -fno-stack-protector \
             -Wno-main -U_FORTIFY_SOURCE -fvisibility=hidden
 CXXFLAGS +=  $(CFLAGS) -ffreestanding -fno-rtti -fno-exceptions
+### -ffreestanding：自由独立模式，不依赖标准库
 ASFLAGS  += -MMD $(INCFLAGS)
+### 添加汇编器标志，包括依赖文件生成和包含路径。
 LDFLAGS  += -z noexecstack $(addprefix -T, $(LDSCRIPTS))
+### 添加链接器标志：
+### -z noexecstack：禁用可执行栈。
+### -T：指定链接脚本文件。
 
 ## 4. Arch-Specific Configurations
 

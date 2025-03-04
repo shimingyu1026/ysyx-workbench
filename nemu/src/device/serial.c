@@ -21,7 +21,7 @@
 
 #define CH_OFFSET 0
 
-static uint8_t *serial_base = NULL;
+static uint8_t *serial_base = NULL; // 指向串口设备内存映射区域的指针
 
 
 static void serial_putc(char ch) {
@@ -33,7 +33,7 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
   switch (offset) {
     /* We bind the serial port with the host stderr in NEMU. */
     case CH_OFFSET:
-      if (is_write) serial_putc(serial_base[0]);
+      if (is_write) serial_putc(seria l_base[0]); // 写入时输出字符
       else panic("do not support read");
       break;
     default: panic("do not support offset = %d", offset);
@@ -41,7 +41,7 @@ static void serial_io_handler(uint32_t offset, int len, bool is_write) {
 }
 
 void init_serial() {
-  serial_base = new_space(8);
+  serial_base = new_space(8);// 分配 8 字节的内存空间
 #ifdef CONFIG_HAS_PORT_IO
   add_pio_map ("serial", CONFIG_SERIAL_PORT, serial_base, 8, serial_io_handler);
 #else

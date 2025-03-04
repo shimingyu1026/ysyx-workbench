@@ -1,6 +1,6 @@
 #include <am.h>
 #include <klib-macros.h>
-
+// 函数声明
 void __am_timer_init();
 void __am_gpu_init();
 void __am_audio_init();
@@ -18,13 +18,17 @@ void __am_disk_config(AM_DISK_CONFIG_T *cfg);
 void __am_disk_status(AM_DISK_STATUS_T *stat);
 void __am_disk_blkio(AM_DISK_BLKIO_T *io);
 
+// 设置定时器配置：标记设备存在且支持RTC
 static void __am_timer_config(AM_TIMER_CONFIG_T *cfg) { cfg->present = true; cfg->has_rtc = true; }
+// 设置输入设备存在
 static void __am_input_config(AM_INPUT_CONFIG_T *cfg) { cfg->present = true;  }
+// 标记UART设备不存在
 static void __am_uart_config(AM_UART_CONFIG_T *cfg)   { cfg->present = false; }
+// 标记网络设备不存在
 static void __am_net_config (AM_NET_CONFIG_T *cfg)    { cfg->present = false; }
 
-typedef void (*handler_t)(void *buf);
-static void *lut[128] = {
+typedef void (*handler_t)(void *buf); // 定义函数指针类型，接收void*参数
+static void *lut[128] = {// 定义128个元素的函数指针数组
   [AM_TIMER_CONFIG] = __am_timer_config,
   [AM_TIMER_RTC   ] = __am_timer_rtc,
   [AM_TIMER_UPTIME] = __am_timer_uptime,
@@ -54,6 +58,6 @@ bool ioe_init() {
   __am_audio_init();
   return true;
 }
-
+// 通过reg索引调用对应的处理函数，传递buf
 void ioe_read (int reg, void *buf) { ((handler_t)lut[reg])(buf); }
 void ioe_write(int reg, void *buf) { ((handler_t)lut[reg])(buf); }
