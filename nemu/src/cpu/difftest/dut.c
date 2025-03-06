@@ -20,16 +20,19 @@
 #include <memory/paddr.h>
 #include <utils.h>
 #include <difftest-def.h>
-
+// 同步内存数据。
 void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool direction) = NULL;
+// 同步寄存器状态。
 void (*ref_difftest_regcpy)(void *dut, bool direction) = NULL;
+// 让参考模拟器执行指定数量的指令。
 void (*ref_difftest_exec)(uint64_t n) = NULL;
+// 触发中断。
 void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 
 #ifdef CONFIG_DIFFTEST
 
-static bool is_skip_ref = false;
-static int skip_dut_nr_inst = 0;
+static bool is_skip_ref = false; // 是否跳过参考模拟器的检查
+static int skip_dut_nr_inst = 0; // DUT需要跳过的指令数
 
 // this is used to let ref skip instructions which
 // can not produce consistent behavior with NEMU
@@ -63,9 +66,9 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   assert(ref_so_file != NULL);
 
   void *handle;
-  handle = dlopen(ref_so_file, RTLD_LAZY);
+  handle = dlopen(ref_so_file, RTLD_LAZY); // 加载共享库（如QEMU的实现）
   assert(handle);
-
+  // 动态绑定函数
   ref_difftest_memcpy = dlsym(handle, "difftest_memcpy");
   assert(ref_difftest_memcpy);
 
@@ -85,9 +88,11 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   Log("The result of every instruction will be compared with %s. "
       "This will help you a lot for debugging, but also significantly reduce the performance. "
       "If it is not necessary, you can turn it off in menuconfig.", ref_so_file);
-
-  ref_difftest_init(port);
+  // 初始化和状态同步
+  ref_difftest_init(port); // 初始化参考模拟器
+  // 同步内存
   ref_difftest_memcpy(RESET_VECTOR, guest_to_host(RESET_VECTOR), img_size, DIFFTEST_TO_REF);
+  // 同步寄存器
   ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
 }
 

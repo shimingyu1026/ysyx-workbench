@@ -9,7 +9,82 @@ static void my_itoa_dec(int num, char *str);
 static void my_utoa_dec(unsigned int num, char *str);
 static void my_itoa_hex(unsigned int num, char *str);
 int printf(const char *fmt, ...) {
-  panic("Not implemented");
+  //panic("Not implemented");
+  va_list args;
+  va_start(args, fmt);
+  while (*fmt != '\0')
+  {
+    if (*fmt == '%')
+    {
+      fmt++;
+      switch (*fmt)
+      {
+      case 'd':
+      {
+        int num = va_arg(args, int);
+        char buf[32];
+        my_itoa_dec(num, buf);
+        for (int i = 0; i < strlen(buf); i++)
+        {
+          putch(buf[i]);
+        }
+        break;
+      }
+      case 'u':
+      {
+        unsigned int num = va_arg(args, unsigned int);
+        char buf[20];
+        my_utoa_dec(num, buf);
+        for (int i = 0; i < strlen(buf); i++)
+        {
+          putch(buf[i]);
+        }
+        break;
+      }
+      case 'x':
+      {
+        unsigned int num = va_arg(args, unsigned int);
+        char buf[20];
+        my_itoa_hex(num, buf);
+        for (int i = 0; i < strlen(buf); i++)
+        {
+          putch(buf[i]);
+        }
+        break;
+      }
+      case 's':
+      {
+        char *s = va_arg(args, char *);
+        for (int i = 0; i < strlen(s); i++)
+        {
+          putch(s[i]);
+        }
+        break;
+      }
+      case 'c':
+      {
+        char c = (char)va_arg(args, int);
+        putch(c);
+        break;
+      }
+      default:
+      {
+        putch('%');
+        putch(*fmt);
+        break;
+      }
+      }
+      fmt++;
+    }
+    else
+    {
+      putch(*fmt);
+      fmt++;
+    }
+  }
+
+  va_end(args);
+  return 0;
 }
 
 int vsprintf(char *out, const char *fmt, va_list ap) {
@@ -76,7 +151,6 @@ int sprintf(char *out, const char *fmt, ...) {
         break;
       }
       }
-
       fmt++;
     }
     else
