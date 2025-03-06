@@ -81,7 +81,28 @@ void *memset(void *s, int c, size_t n) {
 }
 
 void *memmove(void *dst, const void *src, size_t n) {
-  panic("Not implemented");
+  if (dst == NULL || src == NULL)
+  {
+    return NULL;
+  }
+  if ((char *)dst < (const char *)src || (char *)dst >= (const char *)src + n)
+  {
+    // 目标在源之前，从源开始到源结束复制
+    for (size_t i = 0; i < n; i++)
+    {
+      ((char *)dst)[i] = ((const char *)src)[i];
+    }
+  }
+  else
+  {
+    // 目标在源之后，从源结束到源开始复制
+    for (size_t i = n; i > 0; i--)
+    {
+      ((char *)dst)[i - 1] = ((const char *)src)[i - 1];
+    }
+  }
+
+  return dst;
 }
 
 void *memcpy(void *out, const void *in, size_t n) {

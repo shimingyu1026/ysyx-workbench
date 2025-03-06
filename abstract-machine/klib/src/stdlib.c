@@ -4,7 +4,8 @@
 
 #if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
 static unsigned long int next = 1;
-
+static size_t total_length = 0;
+static void *addr; // 当前内存块的地址;
 int rand(void) {
   // RAND_MAX assumed to be 32767
   next = next * 1103515245 + 12345;
@@ -34,9 +35,12 @@ void *malloc(size_t size) {
   // Therefore do not call panic() here, else it will yield a dead recursion:
   //   panic() -> putchar() -> (glibc) -> malloc() -> panic()
 #if !(defined(__ISA_NATIVE__) && defined(__NATIVE_USE_KLIB__))
-  panic("Not implemented");
+  //panic("Not implemented");
 #endif
-  return NULL;
+  size_t i = total_length;
+  total_length += size;
+  addr = heap.start + i;
+  return addr;
 }
 
 void free(void *ptr) {

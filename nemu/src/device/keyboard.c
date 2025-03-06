@@ -33,16 +33,28 @@ f(UP) f(DOWN) f(LEFT) f(RIGHT) f(INSERT) f(DELETE) f(HOME) f(END) f(PAGEUP) f(PA
 
 #define NEMU_KEY_NAME(k) NEMU_KEY_ ## k,
 
-enum {
+enum
+{
   NEMU_KEY_NONE = 0,
   MAP(NEMU_KEYS, NEMU_KEY_NAME)
+  // 展开后的枚举成员：
+  // NEMU_KEY_ESCAPE,
+  // NEMU_KEY_F1,
+  // NEMU_KEY_F2,
+  // NEMU_KEY_F3,
+  // ... 其他按键
 };
 
 #define SDL_KEYMAP(k) keymap[SDL_SCANCODE_ ## k] = NEMU_KEY_ ## k;
 static uint32_t keymap[256] = {};
 
 static void init_keymap() {
-  MAP(NEMU_KEYS, SDL_KEYMAP)
+  MAP(NEMU_KEYS, SDL_KEYMAP) // NEMU_KEYS(SDL_KEYMAP)
+                             //  展开后的键映射初始化：
+                             // keymap[SDL_SCANCODE_ESCAPE] = NEMU_KEY_ESCAPE;
+                             // keymap[SDL_SCANCODE_F1] = NEMU_KEY_F1;
+                             // keymap[SDL_SCANCODE_F2] = NEMU_KEY_F2;
+                             //  ... 其他按键
 }
 
 #define KEY_QUEUE_LEN 1024
