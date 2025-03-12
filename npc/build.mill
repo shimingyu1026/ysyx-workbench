@@ -19,7 +19,10 @@ object playground extends ScalaModule with ScalafmtModule { m =>
     "-feature",
     "-Xcheckinit"
   )
-
+  override def sources = T.sources{
+    super.sources() ++ Seq(
+      PathRef(super.millSourcePath/os.up / "rvdecoderdb" / "rvdecoderdb"))
+  }
   override def ivyDeps             = Agg(ivy"org.chipsalliance::chisel:6.6.0")
   override def scalacPluginIvyDeps = Agg(ivy"org.chipsalliance:::chisel-plugin:6.6.0")
 

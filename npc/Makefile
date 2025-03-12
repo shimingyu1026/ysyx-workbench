@@ -7,6 +7,7 @@ test:
 
 verilog:
 	$(call git_commit, "generate verilog")
+	mill -i __.reformat
 	mkdir -p $(BUILD_DIR)
 	mill -i $(PRJ).runMain Elaborate --target-dir $(BUILD_DIR)
 
