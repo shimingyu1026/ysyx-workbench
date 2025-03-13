@@ -41,3 +41,7 @@ object StoreCtrlEnum extends ChiselEnum {
 object WbSelEnum extends ChiselEnum {
   val alu, pcplus4, mem, imm = Value
 }
+
+object PCSelEnum extends ChiselEnum {
+  val jal, jalr, branch, pcplus4 = Value
+}

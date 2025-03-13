@@ -4,21 +4,30 @@ import chisel3._
 import chisel3.util._
 import chisel3.util.experimental.decode._
 import org.chipsalliance.rvdecoderdb
-import java.util.Base64.Decoder
 
 class decoderIO extends Bundle {
-  val inst    = Input(UInt(32.W))
+  val inst = Input(UInt(32.W))
+
+  // to idu
   val immType = Output(ImmTypesEnum())
-  val regWen  = Output(Bool())
-  val aluCtrl = Output(AluCtrlEnum())
+
+  // to exu
+  val brType  = Output(BrTypeEnum())
   val srcASel = Output(SrcASelEnum())
   val srcBSel = Output(SrcBSelEnum())
-  val brType  = Output(BrTypeEnum())
+  val aluCtrl = Output(AluCtrlEnum())
 
   // to mmu
   val memWen    = Output(MemWenEnum())
   val loadCtrl  = Output(LoadCtrlEnum())
   val storeCtrl = Output(StoreCtrlEnum())
+
+  // to wbu and go back to idu
+  val regWen = Output(Bool())
+  val wbSel  = Output(WbSelEnum())
+
+  // to ifu
+  val pcSel = Output(PCSelEnum())
 
 }
 
@@ -44,7 +53,7 @@ class decoder extends Module {
 
   val instList = rvInstlist ++ rvzicsrInstList
 
-  val allFields = Seq(ImmType, RegWen, ALUCtrl, SrcASel, SrcBSel, BrType, MemWen, LoadCtrl, StoreCtrl)
+  val allFields = Seq(PCSel, WbSel, ImmType, RegWen, ALUCtrl, SrcASel, SrcBSel, BrType, MemWen, LoadCtrl, StoreCtrl)
 
   val decodeTable  = new DecodeTable(instList, allFields)
   val decodeResult = decodeTable.decode(io.inst) // 解码
@@ -58,11 +67,41 @@ class decoder extends Module {
   io.memWen    := decodeResult(MemWen)
   io.loadCtrl  := decodeResult(LoadCtrl)
   io.storeCtrl := decodeResult(StoreCtrl)
+  io.wbSel     := decodeResult(WbSel)
+  io.pcSel     := decodeResult(PCSel)
 
-  instList.foreach { instruction =>
-    println(instruction.inst.toString)
+  // instList.foreach { instruction =>
+  // println(instruction.inst.toString)
+  // }
+
+}
+
+object PCSel extends DecodeField[InstructionPattern, PCSelEnum.Type] {
+  override def name       = "pc_sel"
+  override def chiselType = PCSelEnum()
+  override def genTable(i: InstructionPattern): BitPat = {
+    val sel = i.inst.name match {
+      case "jal"                                           => PCSelEnum.jal
+      case "jalr"                                          => PCSelEnum.jalr
+      case "beq" | "bge" | "bgeu" | "blt" | "bltu" | "bne" => PCSelEnum.branch
+      case _                                               => PCSelEnum.pcplus4
+    }
+    BitPat(sel.litValue.U((sel.getWidth).W))
   }
+}
 
+object WbSel extends DecodeField[InstructionPattern, WbSelEnum.Type] {
+  override def name       = "wb_sel"
+  override def chiselType = WbSelEnum()
+  override def genTable(i: InstructionPattern): BitPat = {
+    val sel = i.inst.name match {
+      case "jal" | "jalr"                     => WbSelEnum.pcplus4
+      case "lb" | "lbu" | "lh" | "lhu" | "lw" => WbSelEnum.mem
+      case "lui"                              => WbSelEnum.imm
+      case _                                  => WbSelEnum.alu
+    }
+    BitPat(sel.litValue.U((sel.getWidth).W))
+  }
 }
 
 object MemWen extends DecodeField[InstructionPattern, MemWenEnum.Type] {
@@ -126,7 +165,7 @@ object SrcBSel extends DecodeField[InstructionPattern, SrcBSelEnum.Type] {
   override def name       = "src_b_sel"
   override def chiselType = SrcBSelEnum()
   override def genTable(i: InstructionPattern): BitPat = {
-    val sel = i.inst.args
+    val sela = i.inst.args
       .map(_.name match {
         case "rs2"                                                           => SrcBSelEnum.rs2
         case "imm12" | "shamtd" | "imm12hi" | "imm12lo" | "imm20" | "jimm20" => SrcBSelEnum.imm
@@ -136,7 +175,7 @@ object SrcBSel extends DecodeField[InstructionPattern, SrcBSelEnum.Type] {
       .headOption // different ImmType will not appear in the Seq
       .getOrElse(SrcBSelEnum.none)
 
-    BitPat(sel.litValue.U((sel.getWidth).W))
+    BitPat(sela.litValue.U((sela.getWidth).W))
 
   }
 }
@@ -145,7 +184,7 @@ object SrcASel extends DecodeField[InstructionPattern, SrcASelEnum.Type] {
   override def name       = "src_a_sel"
   override def chiselType = SrcASelEnum()
   override def genTable(i: InstructionPattern): BitPat = {
-    val sel = i.inst.args
+    val selb = i.inst.args
       .map(_.name match {
         case "rs1" => SrcASelEnum.rs1
         case _     => SrcASelEnum.none
@@ -156,7 +195,7 @@ object SrcASel extends DecodeField[InstructionPattern, SrcASelEnum.Type] {
 
     i.inst.name match {
       case "jal" | "auipc" => BitPat(SrcASelEnum.pc.litValue.U((SrcASelEnum.pc.getWidth).W))
-      case _               => BitPat(sel.litValue.U((sel.getWidth).W))
+      case _               => BitPat(selb.litValue.U((selb.getWidth).W))
     }
   }
 }
