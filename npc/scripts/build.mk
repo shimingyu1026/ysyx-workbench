@@ -2,6 +2,8 @@
 
 WORK_DIR  = $(shell pwd)
 BUILD_DIR = $(WORK_DIR)/build
+VERILOG_DIR =$(abspath ./verilog)
+TOPNAME = top
 
 INC_PATH := $(WORK_DIR)/include $(INC_PATH)
 OBJ_DIR  = $(BUILD_DIR)/obj-$(NAME)$(SO)
@@ -9,35 +11,24 @@ BINARY   = $(BUILD_DIR)/$(NAME)$(SO)
 
 CXX := g++
 LD := $(CXX)
-CFLAGS  := -O2 -MMD -Wall -Werror $(INCLUDES) $(CFLAGS)
-LDFLAGS := -O2 $(LDFLAGS)
+INCLUDES = $(addprefix -I, $(INC_PATH))
+CFLAGS  := -MMD -Wall -Werror $(INCLUDES) $(CFLAGS) \
+			-DTOP_NAME="\"V$(TOPNAME)\"" \
+			
+CXXFLAGS := $(CXXFLAGS)
+LDFLAGS := $(LDFLAGS)
+VERILATOR_CFLAGS += --cc --trace \
+					--x-assign fast \
+					--x-initial fast \
+					--noassert \
+					--build --exe \
+					--Mdir $(OBJ_DIR) \
+					--top-module $(TOPNAME) \
+					-o $(abspath $(BINARY)) 
 
-OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o) $(CXXSRC:%.cc=$(OBJ_DIR)/%.o)
-
-# Compilation patterns
-$(OBJ_DIR)/%.o: %.c
-	@echo + CC $<
-	@mkdir -p $(dir $@)
-	@$(CC) $(CFLAGS) -c -o $@ $<
-	$(call call_fixdep, $(@:.o=.d), $@)
-
-$(OBJ_DIR)/%.o: %.cc
-	@echo + CXX $<
-	@mkdir -p $(dir $@)
-	@$(CXX) $(CFLAGS) $(CXXFLAGS) -c -o $@ $<
-	$(call call_fixdep, $(@:.o=.d), $@)
-
-# Depencies
--include $(OBJS:.o=.d)
-
-# Some convenient rules
 
 .PHONY: app clean
 
-app: $(BINARY)
 
-$(BINARY):: $(OBJS) $(ARCHIVES)
-	@echo + LD $@
-	@$(LD) -o $@ $(OBJS) $(LDFLAGS) $(ARCHIVES) $(LIBS)
 
 

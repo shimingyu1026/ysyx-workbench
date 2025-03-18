@@ -1,5 +1,6 @@
-SRCS-y += src/main.c
-DIRS-y +=
+SRCS-y += 
+#$(abspath src/main.cpp)
+DIRS-y += $(abspath src/)
 DIRS-BLACKLIST-y +=
 
 
