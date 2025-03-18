@@ -4,8 +4,6 @@ import chisel3._
 import chisel3.util._
 
 class WBUIO extends Bundle {
-  val wbSel_i  = Input(WbSelEnum())
-  val regWen_i = Input(Bool())
 
   // from mmu
   val mem_i = Input(UInt(32.W))
@@ -17,7 +15,9 @@ class WBUIO extends Bundle {
   val pcPlus4_i = Input(UInt(32.W))
 
   // from idu
-  val imm_i = Input(UInt(32.W))
+  val imm_i    = Input(UInt(32.W))
+  val wbSel_i  = Input(WbSelEnum())
+  val regWen_i = Input(Bool())
 
   // to regFile/idu
   val regWen_o = Output(Bool())
