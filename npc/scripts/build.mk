@@ -16,7 +16,7 @@ CFLAGS  := -MMD -Wall -Werror $(INCLUDES) $(CFLAGS) \
 			-DTOP_NAME="\"V$(TOPNAME)\"" \
 			
 CXXFLAGS := $(CXXFLAGS)
-LDFLAGS := $(LDFLAGS)
+LDFLAGS := $(LDFLAGS) -lreadline -ldl -pie
 VERILATOR_CFLAGS += --cc --trace \
 					--x-assign fast \
 					--x-initial fast \

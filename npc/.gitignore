@@ -24,4 +24,5 @@ test_run_dir/
 rvdecoderdb/
 
 include/config
+.scalafmt.conf
 
