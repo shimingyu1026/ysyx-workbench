@@ -14,6 +14,7 @@ void init_log(const char *log_file);
 void init_mem();
 void init_isa();
 void init_sdb();
+void init_disasm();
 void sdb_set_batch_mode();
 
 static int parse_args(int argc, char *argv[]);
@@ -26,7 +27,7 @@ static void welcome()
                             "to record the trace. This may lead to a large log file. "
                             "If it is not necessary, you can disable it in menuconfig"));
     Log("Build time: %s, %s", __TIME__, __DATE__);
-    printf("Welcome to %s-NEMU!\n", ANSI_FMT(str(__GUEST_ISA__), ANSI_FG_YELLOW ANSI_BG_RED));
+    printf("Welcome to %s-NPC!\n", ANSI_FMT(str(__GUEST_ISA__), ANSI_FG_YELLOW ANSI_BG_RED));
     printf("For help, type \"help\"\n");
 }
 void init_monitor(int argc, char *argv[])
@@ -39,6 +40,7 @@ void init_monitor(int argc, char *argv[])
     long img_size = load_img();
     // init_difftest(diff_so_file, img_size, difftest_port);
     init_sdb();
+    IFDEF(CONFIG_ITRACE, init_disasm());
     welcome();
 }
 

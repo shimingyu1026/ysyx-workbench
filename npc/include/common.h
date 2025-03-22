@@ -8,9 +8,13 @@
 
 #include <generated/autoconf.h>
 #include <macro.h>
+#include "verilated.h"
+#include "Vtop.h"
 
 #include <assert.h>
 #include <stdlib.h>
+
+#define TOP Vtop
 
 typedef MUXDEF(CONFIG_ISA64, uint64_t, uint32_t) word_t;
 typedef MUXDEF(CONFIG_ISA64, int64_t, int32_t)  sword_t;
@@ -23,5 +27,17 @@ typedef uint16_t ioaddr_t;
 
 #include <debug.h>
 
+class CPU
+{
+public:
+    char logbuf[128];
+    vaddr_t* regs;
+    void *pc;
+    vaddr_t lnpc;  // 当前周期pc
+    vaddr_t snpc;  // 当前周期pc+4
+    vaddr_t linst; // 当前周期执行的指令
+    TOP *top;
+    void *inst;
+};
 
 #endif

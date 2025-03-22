@@ -39,9 +39,12 @@ class EXUIO extends Bundle {
   val regWen_o = Output(Bool())
 
   // to mmu
-  val memWen_o    = Output(UInt(32.W))
+  val memWen_o    = Output(MemWenEnum())
   val loadCtrl_o  = Output(LoadCtrlEnum())
   val storeCtrl_o = Output(StoreCtrlEnum())
+  val imm_o       = Output(UInt(32.W))
+  val rs2_data_o  = Output(UInt(32.W))
+  val aluResult_o = Output(UInt(32.W))
 }
 
 class EXU extends Module {
@@ -88,4 +91,7 @@ class EXU extends Module {
   io.memWen_o    := io.memWen_i
   io.loadCtrl_o  := io.loadCtrl_i
   io.storeCtrl_o := io.storeCtrl_i
+  io.imm_o       := io.imm_i
+  io.rs2_data_o  := io.rs2_data_i
+  io.aluResult_o := alu.io.aluResult
 }

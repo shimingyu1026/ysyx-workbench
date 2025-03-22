@@ -49,10 +49,13 @@ verilog:
 sim:
 	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 	@mkdir -p $(BUILD_DIR)
-	@$(VERILATOR) $(VERILATOR_CFLAGS) \
+	$(VERILATOR) $(VERILATOR_CFLAGS) \
 		-CFLAGS "$(CFLAGS)" \
 		-LDFLAGS "$(LDFLAGS)" \
 		$(VSRCS) $(SRCS) > build/verilator_log.txt
+	@$(BINARY) $(ARGS) $(IMG)
+
+run: 
 	@$(BINARY) $(ARGS) $(IMG)
 
 

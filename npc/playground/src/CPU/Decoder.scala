@@ -29,6 +29,9 @@ class decoderIO extends Bundle {
   // to ifu
   val pcSel = Output(PCSelEnum())
 
+  // to sim
+  val npcTrap = Output(Bool())
+
 }
 
 class decoder extends Module {
@@ -53,7 +56,8 @@ class decoder extends Module {
 
   val instList = rvInstlist ++ rvzicsrInstList
 
-  val allFields = Seq(PCSel, WbSel, ImmType, RegWen, ALUCtrl, SrcASel, SrcBSel, BrType, MemWen, LoadCtrl, StoreCtrl)
+  val allFields =
+    Seq(NPCTrap, PCSel, WbSel, ImmType, RegWen, ALUCtrl, SrcASel, SrcBSel, BrType, MemWen, LoadCtrl, StoreCtrl)
 
   val decodeTable  = new DecodeTable(instList, allFields)
   val decodeResult = decodeTable.decode(io.inst) // 解码
@@ -69,11 +73,24 @@ class decoder extends Module {
   io.storeCtrl := decodeResult(StoreCtrl)
   io.wbSel     := decodeResult(WbSel)
   io.pcSel     := decodeResult(PCSel)
+  io.npcTrap   := decodeResult(NPCTrap)
 
-  // instList.foreach { instruction =>
-  // println(instruction.inst.toString)
-  // }
+  instList.foreach { instruction =>
+    println(instruction.inst.toString)
+  }
 
+}
+
+object NPCTrap extends DecodeField[InstructionPattern, Bool] {
+  override def name       = "trap"
+  override def chiselType = Bool()
+  override def genTable(i: InstructionPattern): BitPat = {
+    val trap = i.inst.name match {
+      case "ebreak" => true.B
+      case _        => false.B
+    }
+    BitPat(trap.litValue.U((trap.getWidth).W))
+  }
 }
 
 object PCSel extends DecodeField[InstructionPattern, PCSelEnum.Type] {
@@ -174,8 +191,11 @@ object SrcBSel extends DecodeField[InstructionPattern, SrcBSelEnum.Type] {
       .filterNot(_ == SrcBSelEnum.none)
       .headOption // different ImmType will not appear in the Seq
       .getOrElse(SrcBSelEnum.none)
-
-    BitPat(sela.litValue.U((sela.getWidth).W))
+    i.inst.name match {
+      case "beq" | "bge" | "bgeu" | "blt" | "bltu" | "bne" =>
+        BitPat(SrcBSelEnum.imm.litValue.U((SrcBSelEnum.imm.getWidth).W))
+      case _                                               => BitPat(sela.litValue.U((sela.getWidth).W))
+    }
 
   }
 }
@@ -194,8 +214,9 @@ object SrcASel extends DecodeField[InstructionPattern, SrcASelEnum.Type] {
       .getOrElse(SrcASelEnum.none)
 
     i.inst.name match {
-      case "jal" | "auipc" => BitPat(SrcASelEnum.pc.litValue.U((SrcASelEnum.pc.getWidth).W))
-      case _               => BitPat(selb.litValue.U((selb.getWidth).W))
+      case "jal" | "auipc" | "beq" | "bge" | "bgeu" | "blt" | "bltu" | "bne" =>
+        BitPat(SrcASelEnum.pc.litValue.U((SrcASelEnum.pc.getWidth).W))
+      case _                                                                 => BitPat(selb.litValue.U((selb.getWidth).W))
     }
   }
 }
@@ -204,17 +225,18 @@ object ALUCtrl extends DecodeField[InstructionPattern, AluCtrlEnum.Type] {
   override def chiselType = AluCtrlEnum()
   override def genTable(i: InstructionPattern): BitPat = {
     val ctrl = i.inst.name match {
-      case "lw" | "lb" | "lh" | "lbu" | "lhu" | "sw" | "sb" | "sh" | "add" | "addi" | "jal" | "lui" | "auipc" =>
+      case "lw" | "lb" | "lh" | "lbu" | "lhu" | "sw" | "sb" | "sh" | "add" | "addi" | "jal" | "lui" | "auipc" | "jalr" |
+          "bne" | "bltu" | "blt" | "bge" | "bgeu" | "beq" =>
         AluCtrlEnum.add
-      case "sub"                                                                                              => AluCtrlEnum.sub
-      case "and" | "andi"                                                                                     => AluCtrlEnum.and
-      case "or" | "ori"                                                                                       => AluCtrlEnum.or
-      case "xor" | "xori"                                                                                     => AluCtrlEnum.xor
-      case "sll" | "slli"                                                                                     => AluCtrlEnum.sll
-      case "srl" | "srli"                                                                                     => AluCtrlEnum.srl
-      case "sra" | "srai"                                                                                     => AluCtrlEnum.sra
-      case "slt" | "slti"                                                                                     => AluCtrlEnum.slt
-      case "sltu" | "sltiu"                                                                                   => AluCtrlEnum.sltu
+      case "sub"            => AluCtrlEnum.sub
+      case "and" | "andi"   => AluCtrlEnum.and
+      case "or" | "ori"     => AluCtrlEnum.or
+      case "xor" | "xori"   => AluCtrlEnum.xor
+      case "sll" | "slli"   => AluCtrlEnum.sll
+      case "srl" | "srli"   => AluCtrlEnum.srl
+      case "sra" | "srai"   => AluCtrlEnum.sra
+      case "slt" | "slti"   => AluCtrlEnum.slt
+      case "sltu" | "sltiu" => AluCtrlEnum.sltu
 
       case _ =>
         AluCtrlEnum.none

@@ -39,6 +39,11 @@ class IDUIO extends Bundle {
 
   // to ifu
   val pcSel_o = Output(PCSelEnum())
+
+  val npcTrap = Output(Bool())
+
+  // for verilator
+  val regs = Output(Vec(32, UInt(32.W)))
 }
 
 class IDU extends Module {
@@ -81,5 +86,9 @@ class IDU extends Module {
   io.wbSel_o   := decoder.io.wbSel
 
   io.pcSel_o := decoder.io.pcSel
+
+  io.npcTrap := decoder.io.npcTrap
+
+  io.regs := regFile.io.regs
 
 }

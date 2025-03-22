@@ -12,8 +12,10 @@ BINARY   = $(BUILD_DIR)/$(NAME)$(SO)
 CXX := g++
 LD := $(CXX)
 INCLUDES = $(addprefix -I, $(INC_PATH))
-CFLAGS  := -MMD -Wall -Werror $(INCLUDES) $(CFLAGS) \
-			-DTOP_NAME="\"V$(TOPNAME)\"" \
+CFLAGS  := -MMD \
+			$(INCLUDES) $(CFLAGS) \
+			-DTOP_NAME=V$(TOPNAME) \
+			-Wall -Werror
 			
 CXXFLAGS := $(CXXFLAGS)
 LDFLAGS := $(LDFLAGS) -lreadline -ldl -pie

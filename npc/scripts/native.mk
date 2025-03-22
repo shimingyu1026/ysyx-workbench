@@ -9,7 +9,7 @@ NPC_EXEC := $(BINARY) $(ARGS) $(IMG)
 
 run-env: $(BINARY) $(DIFF_REF_SO)
 
-run: run-env
-	$(NPC_EXEC)
+#run: run-env
+#	$(NPC_EXEC)
 
 .PHONY: run  run-env 

@@ -17,18 +17,19 @@ class IFUIO extends Bundle {
   val inst_i = Input(UInt(32.W))
 
   // to idu
-  val inst_o = Output(UInt(32.W))
+  val inst_o    = Output(UInt(32.W))
+  val pcPlus4_o = Output(UInt(32.W))
 }
 
 class IFU extends Module {
   val io = IO(new IFUIO)
 
-  val PC = RegInit(0.U(32.W))
+  val PC = RegInit("h80000000".U(32.W))
 
   val pcPlus4 = PC + 4.U
 
   val jalPC  = io.pcBranchJ_i
-  val jalrPC = io.pcBranchJ_i & 0xfffffffe.U
+  val jalrPC = io.pcBranchJ_i & "hfffffffe".U
 
   val branchPC = io.pcBranchJ_i
   val brPC     = MuxLookup(io.brSel_i, pcPlus4)(
@@ -47,8 +48,9 @@ class IFU extends Module {
     )
   )
   PC := PCNext
-
-  io.pc_o   := PC
-  io.inst_o := io.inst_i
+  // printf("io.pcBranchJ_i: %x\n", io.pcBranchJ_i)
+  io.pc_o      := PC
+  io.inst_o    := io.inst_i
+  io.pcPlus4_o := pcPlus4
 
 }

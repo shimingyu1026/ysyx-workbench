@@ -13,6 +13,7 @@
  * See the Mulan PSL v2 for more details.
  ***************************************************************************************/
 #include <isa.h>
+#include <cpu/cpu.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <memory/vaddr.h>
@@ -20,6 +21,7 @@
 #include "expr.h"
 
 static int is_batch_mode = false;
+CPU *cmd_cpu;
 
 void init_regex();
 void init_wp_pool();
@@ -35,7 +37,7 @@ static char *rl_gets()
     line_read = NULL;
   }
 
-  line_read = readline("(nemu) ");
+  line_read = readline("(npc) ");
 
   if (line_read && *line_read)
   {
@@ -47,7 +49,7 @@ static char *rl_gets()
 
 static int cmd_c(char *args)
 {
-  // cpu_exec(-1);
+  cpu_exec(-1, cmd_cpu);
   return 0;
 }
 
@@ -82,12 +84,12 @@ static int cmd_si(char *args)
   if (!args)
   {
     printf("excute one step by default\n");
-    // cpu_exec(1);
+    cpu_exec(1, cmd_cpu);
     return 0;
   }
   n = atoi(args); // 将字符串 str 转换为 int 类型整数。
   printf("excute %d steps\n", n);
-  // cpu_exec(n);
+  cpu_exec(n, cmd_cpu);
   return 0;
 }
 static int cmd_x(char *args)
@@ -170,8 +172,9 @@ void sdb_set_batch_mode()
   is_batch_mode = true;
 }
 
-void sdb_mainloop()
+void sdb_mainloop(CPU *cpu)
 {
+  cmd_cpu = cpu;
   if (is_batch_mode)
   {
     cmd_c(NULL);
@@ -222,6 +225,8 @@ void sdb_mainloop()
     {
       printf("Unknown command '%s'\n", cmd);
     }
+
+    // printf("npcTrap: %d\n", cpu->top->io_npcTrap);
   }
 }
 
