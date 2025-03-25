@@ -31,5 +31,29 @@ void isa_reg_display() {
 }
 
 word_t isa_reg_str2val(const char *s, bool *success) {
-  return 0;
+  if (strcmp(s, "0") == 0)
+  {
+    *success = true;
+    return cpu.gpr[0];
+  }
+  else if (strcmp(s, "pc") == 0)
+  {
+    *success = true;
+    return cpu.pc;
+  }
+  else
+  {
+    for (int i = 1; i < 32; i++)
+    {
+      if (strcmp(s, regs[i]) == 0)
+      {
+        *success = true;
+        return cpu.gpr[i];
+      }
+    }
+  }
+
+  *success = false;
+  Log("invalid reg");
+  return -1;
 }

@@ -22,6 +22,10 @@ class EXUIO extends Bundle {
   val loadCtrl_i  = Input(LoadCtrlEnum())
   val storeCtrl_i = Input(StoreCtrlEnum())
 
+  val csr_rdata_i = Input(UInt(32.W))
+  val csr_wen_i   = Input(Bool())
+  val csr_waddr_i = Input(UInt(12.W))
+
   // from ifu
   val pc_i      = Input(UInt(32.W))
   val pcPlus4_i = Input(UInt(32.W))
@@ -45,6 +49,12 @@ class EXUIO extends Bundle {
   val imm_o       = Output(UInt(32.W))
   val rs2_data_o  = Output(UInt(32.W))
   val aluResult_o = Output(UInt(32.W))
+
+  // csr
+  val csr_wdata_o = Output(UInt(32.W))
+  val csr_waddr_o = Output(UInt(12.W))
+  val csr_wen_o   = Output(Bool())
+  val csr_rdata_o = Output(UInt(32.W))
 }
 
 class EXU extends Module {
@@ -55,14 +65,17 @@ class EXU extends Module {
   val srcA = MuxLookup(io.srcASel_i, 0.U)(
     List(
       SrcASelEnum.pc  -> io.pc_i,
-      SrcASelEnum.rs1 -> io.rs1_data_i
+      SrcASelEnum.rs1 -> io.rs1_data_i,
+      SrcASelEnum.csr -> io.csr_rdata_i
     )
   )
 
   val srcB = MuxLookup(io.srcBSel_i, 0.U)(
     List(
-      SrcBSelEnum.imm -> io.imm_i,
-      SrcBSelEnum.rs2 -> io.rs2_data_i
+      SrcBSelEnum.imm  -> io.imm_i,
+      SrcBSelEnum.rs2  -> io.rs2_data_i,
+      SrcBSelEnum.zero -> 0.U,
+      SrcBSelEnum.csr  -> io.csr_rdata_i
     )
   )
   alu.io.srcA := srcA
@@ -94,4 +107,9 @@ class EXU extends Module {
   io.imm_o       := io.imm_i
   io.rs2_data_o  := io.rs2_data_i
   io.aluResult_o := alu.io.aluResult
+
+  io.csr_wdata_o := alu.io.aluResult
+  io.csr_wen_o   := io.csr_wen_i
+  io.csr_rdata_o := io.csr_rdata_i
+  io.csr_waddr_o := io.csr_waddr_i
 }

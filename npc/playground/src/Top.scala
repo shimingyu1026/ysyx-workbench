@@ -29,6 +29,7 @@ class top extends Module {
   dataMem.io.memRaddr_i := core.io.memRaddr_o
   dataMem.io.memWaddr_i := core.io.memWaddr_o
   dataMem.io.memWen_i   := core.io.memWen_o
+  dataMem.io.mask_i     := core.io.mask_o
 
   core.io.inst_i     := instrMen.io.inst_o
   core.io.memRdata_i := dataMem.io.memRdata_o
@@ -40,11 +41,13 @@ class top extends Module {
   io.regs := core.io.regs
 
   trap.io.npcTrap := core.io.npcTrap
+  trap.io.clock   := clock
 
 }
 
 class trap extends BlackBox {
   val io = IO(new Bundle {
+    val clock   = Input(Clock())
     val npcTrap = Input(Bool())
   })
   dontTouch(io)
@@ -68,6 +71,7 @@ class dataMem extends BlackBox {
     val memRaddr_i = Input(UInt(32.W))
     val memWaddr_i = Input(UInt(32.W))
     val memWen_i   = Input(Bool())
+    val mask_i     = Input(UInt(4.W))
     val memRdata_o = Output(UInt(32.W))
   })
   dontTouch(io)

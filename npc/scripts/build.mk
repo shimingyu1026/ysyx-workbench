@@ -15,7 +15,7 @@ INCLUDES = $(addprefix -I, $(INC_PATH))
 CFLAGS  := -MMD \
 			$(INCLUDES) $(CFLAGS) \
 			-DTOP_NAME=V$(TOPNAME) \
-			-Wall -Werror
+			-Wall -Werror \
 			
 CXXFLAGS := $(CXXFLAGS)
 LDFLAGS := $(LDFLAGS) -lreadline -ldl -pie

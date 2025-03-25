@@ -1,10 +1,11 @@
 #include <common.h>
-void init_monitor(int, char *[]);
+void init_monitor(int, char *[], CPU *cpu);
 void sdb_mainloop(CPU *cpu);
 word_t vaddr_read(vaddr_t addr, int len);
 void reset(CPU *cpu);
 
 extern "C" word_t mem_read(vaddr_t addr, int len);
+extern "C" void mem_write(vaddr_t addr, word_t data, char mask);
 extern "C" void npcTrapHandler();
 
 int main(int argc, char **argv)
@@ -23,24 +24,9 @@ int main(int argc, char **argv)
     }
     //------------------------------------------------------------------
 
-    init_monitor(argc, argv);
-    reset(cpu);
-
+    init_monitor(argc, argv, cpu);
     sdb_mainloop(cpu);
 
     return 0;
 }
 
-void reset(CPU *cpu)
-{
-    cpu->top->reset = 1;
-    int n = 20;
-    while (n-- > 0)
-    {
-        cpu->top->clock = 0;
-        cpu->top->eval();
-        cpu->top->clock = 1;
-        cpu->top->eval();
-    }
-    cpu->top->reset = 0;
-}

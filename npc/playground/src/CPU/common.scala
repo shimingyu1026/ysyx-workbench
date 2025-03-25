@@ -12,11 +12,11 @@ object AluCtrlEnum extends ChiselEnum {
 }
 
 object SrcASelEnum extends ChiselEnum {
-  val pc, rs1, none = Value
+  val pc, rs1, csr, none = Value
 }
 
 object SrcBSelEnum extends ChiselEnum {
-  val imm, rs2, none = Value
+  val imm, rs2, zero, csr, none = Value
 }
 
 object BrTypeEnum extends ChiselEnum {
@@ -39,9 +39,13 @@ object StoreCtrlEnum extends ChiselEnum {
 }
 
 object WbSelEnum extends ChiselEnum {
-  val alu, pcplus4, mem, imm = Value
+  val alu, pcplus4, mem, imm, csr = Value
 }
 
 object PCSelEnum extends ChiselEnum {
-  val jal, jalr, branch, pcplus4 = Value
+  val jal, jalr, branch, pcplus4, csr = Value
+}
+
+object CSRCtrlEnum extends ChiselEnum {
+  val mret, ecall, none = Value
 }

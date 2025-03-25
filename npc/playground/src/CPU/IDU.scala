@@ -14,6 +14,10 @@ class IDUIO extends Bundle {
   val wbdata_i = Input(UInt(32.W))
   val regWen_i = Input(Bool())
 
+  val csr_wen_i   = Input(Bool())
+  val csr_waddr_i = Input(UInt(12.W))
+  val csr_wdata_i = Input(UInt(32.W))
+
 //to exu
   val pc_o       = Output(UInt(32.W))
   val imm_o      = Output(UInt(32.W)) // also to wbu
@@ -39,11 +43,17 @@ class IDUIO extends Bundle {
 
   // to ifu
   val pcSel_o = Output(PCSelEnum())
+  val csr_o   = Output(UInt(32.W))
 
   val npcTrap = Output(Bool())
 
   // for verilator
   val regs = Output(Vec(32, UInt(32.W)))
+
+  // csr
+  val csr_rdata_o = Output(UInt(32.W))
+  val csr_waddr_o = Output(UInt(12.W))
+  val csr_wen_o   = Output(Bool())
 }
 
 class IDU extends Module {
@@ -51,6 +61,7 @@ class IDU extends Module {
 
   val immExtend = Module(new immExtend)
   val regFile   = Module(new regFile)
+  val csrFile   = Module(new csrFile)
   val decoder   = Module(new decoder)
 
   immExtend.io.inst    := io.inst_i
@@ -59,11 +70,19 @@ class IDU extends Module {
   val rs1_addr = io.inst_i(19, 15)
   val rs2_addr = io.inst_i(24, 20)
   val rd_addr  = io.inst_i(11, 7)
+  val csr_addr = io.inst_i(31, 20)
   regFile.io.rs1_addr := rs1_addr
   regFile.io.rs2_addr := rs2_addr
   regFile.io.rd_addr  := rd_addr
   regFile.io.regWen   := io.regWen_i
   regFile.io.wdata    := io.wbdata_i
+
+  csrFile.io.csr_raddr_i := csr_addr
+  csrFile.io.csr_wen_i   := io.csr_wen_i
+  csrFile.io.csr_wdata_i := io.csr_wdata_i
+  csrFile.io.csr_waddr_i := io.csr_waddr_i
+  csrFile.io.csr_ctrl_i  := decoder.io.csr_ctrl
+  csrFile.io.pc_i        := io.pc_i
 
   decoder.io.inst := io.inst_i
 
@@ -90,5 +109,15 @@ class IDU extends Module {
   io.npcTrap := decoder.io.npcTrap
 
   io.regs := regFile.io.regs
+
+  io.csr_rdata_o := csrFile.io.csr_rdata_o
+  io.csr_wen_o   := decoder.io.csr_wen
+  io.csr_waddr_o := csr_addr
+
+  io.csr_o := csrFile.io.csr_rdata_o
+
+  when(decoder.io.csr_ctrl === CSRCtrlEnum.ecall) {
+    // printf("ecall\n")
+  }
 
 }

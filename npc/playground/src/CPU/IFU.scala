@@ -13,6 +13,9 @@ class IFUIO extends Bundle {
   // from exu
   val pcBranchJ_i = Input(UInt(32.W))
 
+  // from csr
+  val csr_i = Input(UInt(32.W))
+
 //from inst memory
   val inst_i = Input(UInt(32.W))
 
@@ -44,7 +47,8 @@ class IFU extends Module {
       PCSelEnum.pcplus4 -> pcPlus4,
       PCSelEnum.jal     -> jalPC,
       PCSelEnum.jalr    -> jalrPC,
-      PCSelEnum.branch  -> brPC
+      PCSelEnum.branch  -> brPC,
+      PCSelEnum.csr     -> io.csr_i
     )
   )
   PC := PCNext

@@ -11,11 +11,13 @@ static int difftest_port = 1234;
 
 void init_rand();
 void init_log(const char *log_file);
+void init_difftest(char *ref_so_file, long img_size, int port, CPU *cpu);
 void init_mem();
 void init_isa();
 void init_sdb();
 void init_disasm();
 void sdb_set_batch_mode();
+void reset(CPU *cpu);
 
 static int parse_args(int argc, char *argv[]);
 static long load_img();
@@ -30,20 +32,34 @@ static void welcome()
     printf("Welcome to %s-NPC!\n", ANSI_FMT(str(__GUEST_ISA__), ANSI_FG_YELLOW ANSI_BG_RED));
     printf("For help, type \"help\"\n");
 }
-void init_monitor(int argc, char *argv[])
+void init_monitor(int argc, char *argv[], CPU *cpu)
 { //$(ARGS) $(IMG)
     parse_args(argc, argv);
     init_rand();
     init_log(log_file);
     init_mem();
     init_isa();
+    reset(cpu);
     long img_size = load_img();
-    // init_difftest(diff_so_file, img_size, difftest_port);
     init_sdb();
     IFDEF(CONFIG_ITRACE, init_disasm());
+    IFDEF(CONFIG_DIFFTEST,init_difftest(diff_so_file, img_size, difftest_port, cpu));
+
     welcome();
 }
-
+void reset(CPU *cpu)
+{
+    cpu->top->reset = 1;
+    int n = 20;
+    while (n-- > 0)
+    {
+        cpu->top->clock = 0;
+        cpu->top->eval();
+        cpu->top->clock = 1;
+        cpu->top->eval();
+    }
+    cpu->top->reset = 0;
+}
 static long load_img()
 {
     if (img_file == NULL)

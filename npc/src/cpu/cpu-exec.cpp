@@ -1,4 +1,5 @@
 #include <cpu/cpu.h>
+#include <cpu/difftest.h>
 
 bool npcTrap = false;
 static uint64_t g_timer = 0; // unit: us
@@ -8,7 +9,7 @@ extern "C" void npcTrapHandler()
     npcTrap = true;
 }
 
-static void trace_and_difftest(CPU *_this)
+static void trace_and_difftest(CPU *_this, vaddr_t dnpc)
 {
 #ifdef CONFIG_ITRACE_COND
     if (ITRACE_COND)
@@ -18,6 +19,7 @@ static void trace_and_difftest(CPU *_this)
 #endif
 
     IFDEF(CONFIG_ITRACE, puts(_this->logbuf));
+    IFDEF(CONFIG_DIFFTEST, difftest_step(_this->lnpc, dnpc, _this));
 }
 static void exec_once(CPU *cpu)
 {
@@ -55,7 +57,7 @@ static void execute(uint64_t n, CPU *cpu)
     for (; n > 0; n--)
     {
         exec_once(cpu);
-        trace_and_difftest(cpu);
+        trace_and_difftest(cpu, *(vaddr_t *)cpu->pc);
         if (npcTrap)
         {
             break;
@@ -84,6 +86,7 @@ void cpu_exec(uint64_t n, CPU *cpu)
     uint64_t timer_end = get_time();
     g_timer += timer_end - timer_start;
     // printf("timer_start: %ld, timer_end: %ld\n", timer_start, timer_end);
+    // printf("NPC trap: %d\n", npcTrap);
     if (npcTrap)
     {
             Log("npc: %s at pc = " FMT_WORD,

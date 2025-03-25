@@ -32,6 +32,9 @@ class decoderIO extends Bundle {
   // to sim
   val npcTrap = Output(Bool())
 
+  val csr_wen  = Output(Bool())
+  val csr_ctrl = Output(CSRCtrlEnum())
+
 }
 
 class decoder extends Module {
@@ -57,7 +60,22 @@ class decoder extends Module {
   val instList = rvInstlist ++ rvzicsrInstList
 
   val allFields =
-    Seq(NPCTrap, PCSel, WbSel, ImmType, RegWen, ALUCtrl, SrcASel, SrcBSel, BrType, MemWen, LoadCtrl, StoreCtrl)
+    Seq(
+      NPCTrap,
+      PCSel,
+      WbSel,
+      CSRCtrl,
+      CSRWen,
+      ImmType,
+      RegWen,
+      ALUCtrl,
+      SrcASel,
+      SrcBSel,
+      BrType,
+      MemWen,
+      LoadCtrl,
+      StoreCtrl
+    )
 
   val decodeTable  = new DecodeTable(instList, allFields)
   val decodeResult = decodeTable.decode(io.inst) // 解码
@@ -74,6 +92,8 @@ class decoder extends Module {
   io.wbSel     := decodeResult(WbSel)
   io.pcSel     := decodeResult(PCSel)
   io.npcTrap   := decodeResult(NPCTrap)
+  io.csr_wen   := decodeResult(CSRWen)
+  io.csr_ctrl  := decodeResult(CSRCtrl)
 
   instList.foreach { instruction =>
     println(instruction.inst.toString)
@@ -81,6 +101,30 @@ class decoder extends Module {
 
 }
 
+object CSRCtrl extends DecodeField[InstructionPattern, CSRCtrlEnum.Type] {
+  override def name       = "csr_ctrl"
+  override def chiselType = CSRCtrlEnum()
+  override def genTable(i: InstructionPattern): BitPat = {
+    val ctrl = i.inst.name match {
+      case "mret"  => CSRCtrlEnum.mret
+      case "ecall" => CSRCtrlEnum.ecall
+      case _       => CSRCtrlEnum.none
+    }
+    return BitPat(ctrl.litValue.U((ctrl.getWidth).W))
+  }
+}
+
+object CSRWen  extends DecodeField[InstructionPattern, Bool] {
+  override def name       = "csr_wen"
+  override def chiselType = Bool()
+  override def genTable(i: InstructionPattern): BitPat = {
+    val wen = i.inst.name match {
+      case "csrrw" | "csrrs" | "csrrc" | "csrrwi" | "csrrsi" | "csrrci" => true.B
+      case _                                                            => false.B
+    }
+    BitPat(wen.litValue.U((wen.getWidth).W))
+  }
+}
 object NPCTrap extends DecodeField[InstructionPattern, Bool] {
   override def name       = "trap"
   override def chiselType = Bool()
@@ -101,6 +145,7 @@ object PCSel extends DecodeField[InstructionPattern, PCSelEnum.Type] {
       case "jal"                                           => PCSelEnum.jal
       case "jalr"                                          => PCSelEnum.jalr
       case "beq" | "bge" | "bgeu" | "blt" | "bltu" | "bne" => PCSelEnum.branch
+      case "ecall" | "mret"                                => PCSelEnum.csr
       case _                                               => PCSelEnum.pcplus4
     }
     BitPat(sel.litValue.U((sel.getWidth).W))
@@ -115,6 +160,7 @@ object WbSel extends DecodeField[InstructionPattern, WbSelEnum.Type] {
       case "jal" | "jalr"                     => WbSelEnum.pcplus4
       case "lb" | "lbu" | "lh" | "lhu" | "lw" => WbSelEnum.mem
       case "lui"                              => WbSelEnum.imm
+      case "csrrw" | "csrrs"                  => WbSelEnum.csr
       case _                                  => WbSelEnum.alu
     }
     BitPat(sel.litValue.U((sel.getWidth).W))
@@ -194,6 +240,8 @@ object SrcBSel extends DecodeField[InstructionPattern, SrcBSelEnum.Type] {
     i.inst.name match {
       case "beq" | "bge" | "bgeu" | "blt" | "bltu" | "bne" =>
         BitPat(SrcBSelEnum.imm.litValue.U((SrcBSelEnum.imm.getWidth).W))
+      case "csrrs"                                         => BitPat(SrcBSelEnum.csr.litValue.U((SrcBSelEnum.csr.getWidth).W))
+      case "csrrw"                                         => BitPat(SrcBSelEnum.zero.litValue.U((SrcBSelEnum.zero.getWidth).W))
       case _                                               => BitPat(sela.litValue.U((sela.getWidth).W))
     }
 
@@ -216,6 +264,7 @@ object SrcASel extends DecodeField[InstructionPattern, SrcASelEnum.Type] {
     i.inst.name match {
       case "jal" | "auipc" | "beq" | "bge" | "bgeu" | "blt" | "bltu" | "bne" =>
         BitPat(SrcASelEnum.pc.litValue.U((SrcASelEnum.pc.getWidth).W))
+      case "csrrw" | "csrrs"                                                 => BitPat(SrcASelEnum.rs1.litValue.U((SrcASelEnum.rs1.getWidth).W))
       case _                                                                 => BitPat(selb.litValue.U((selb.getWidth).W))
     }
   }
@@ -228,18 +277,18 @@ object ALUCtrl extends DecodeField[InstructionPattern, AluCtrlEnum.Type] {
       case "lw" | "lb" | "lh" | "lbu" | "lhu" | "sw" | "sb" | "sh" | "add" | "addi" | "jal" | "lui" | "auipc" | "jalr" |
           "bne" | "bltu" | "blt" | "bge" | "bgeu" | "beq" =>
         AluCtrlEnum.add
-      case "sub"            => AluCtrlEnum.sub
-      case "and" | "andi"   => AluCtrlEnum.and
-      case "or" | "ori"     => AluCtrlEnum.or
-      case "xor" | "xori"   => AluCtrlEnum.xor
-      case "sll" | "slli"   => AluCtrlEnum.sll
-      case "srl" | "srli"   => AluCtrlEnum.srl
-      case "sra" | "srai"   => AluCtrlEnum.sra
-      case "slt" | "slti"   => AluCtrlEnum.slt
-      case "sltu" | "sltiu" => AluCtrlEnum.sltu
+      case "sub"                  => AluCtrlEnum.sub
+      case "and" | "andi"         => AluCtrlEnum.and
+      case "or" | "ori" | "csrrs" => AluCtrlEnum.or
+      case "xor" | "xori"         => AluCtrlEnum.xor
+      case "sll" | "slli"         => AluCtrlEnum.sll
+      case "srl" | "srli"         => AluCtrlEnum.srl
+      case "sra" | "srai"         => AluCtrlEnum.sra
+      case "slt" | "slti"         => AluCtrlEnum.slt
+      case "sltu" | "sltiu"       => AluCtrlEnum.sltu
 
       case _ =>
-        AluCtrlEnum.none
+        AluCtrlEnum.add
 
     }
     return BitPat(ctrl.litValue.U((ctrl.getWidth).W))
