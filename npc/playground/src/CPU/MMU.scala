@@ -3,42 +3,15 @@ package myCPU
 import chisel3._
 import chisel3.util._
 import scala.annotation.switch
-
-class MMUIO extends Bundle {
-  // from ifu
-  val pcPlus4_i = Input(UInt(32.W))
-
-  // from idu
-  val rs2_data_i = Input(UInt(32.W))
-  val imm_i      = Input(UInt(32.W))
-
-  val regWen_i    = Input(Bool())
-  val storeCtrl_i = Input(StoreCtrlEnum())
-  val loadCtrl_i  = Input(LoadCtrlEnum())
-  val memWen_i    = Input(MemWenEnum())
-  val wbSel_i     = Input(WbSelEnum())
+object StateMMU extends ChiselEnum {
+  val sIdle, sWaitValid, sWaitReady = Value
+}
+class MMUIO     extends Bundle     {
+  val exu_to_mmu = Flipped(Decoupled(new exu_to_mmu_io))
+  val mmu_to_wbu = Decoupled(new mmu_to_wbu_io)
 
   // from memory
   val memRdata_i = Input(UInt(32.W))
-
-  // csr
-  val csr_wen_i   = Input(Bool())
-  val csr_waddr_i = Input(UInt(12.W))
-  val csr_wdata_i = Input(UInt(32.W))
-  val csr_rdata_i = Input(UInt(32.W))
-
-  // from exu
-  val aluResult_i = Input(UInt(32.W))
-
-  // to wbu
-  val mem_o       = Output(UInt(32.W))
-  val imm_o       = Output(UInt(32.W))
-  val pcPlus4_o   = Output(UInt(32.W))
-  val aluResult_o = Output(UInt(32.W))
-  val wbSel_o     = Output(WbSelEnum())
-
-//to idu
-  val regWen_o = Output(Bool())
 
   // to memory
   val memWdata_o = Output(UInt(32.W))
@@ -47,25 +20,43 @@ class MMUIO extends Bundle {
   val memWen_o   = Output(Bool())
   val mask_o     = Output(UInt(4.W))
 
-  // csr
-  val csr_wdata_o = Output(UInt(32.W))
-  val csr_waddr_o = Output(UInt(12.W))
-  val csr_wen_o   = Output(Bool())
-  val csr_rdata_o = Output(UInt(32.W))
 }
 
 class MMU extends Module {
+  import StateMMU._
   val io = IO(new MMUIO)
 
-  val raddr    = io.aluResult_i
-  val waddr    = io.aluResult_i
-  val rs2_data = io.rs2_data_i
+  io.exu_to_mmu.ready := 0.U
+  io.mmu_to_wbu.valid := 0.U
+
+  val state = RegInit(sIdle)
+  switch(state) {
+    is(sIdle) {
+      when(io.exu_to_mmu.ready) {
+        state := sWaitValid
+      }
+    }
+    is(sWaitValid) {
+      when(io.exu_to_mmu.valid) {
+        state := sWaitReady
+      }
+    }
+    is(sWaitReady) {
+      when(io.mmu_to_wbu.ready) {
+        state := sIdle
+      }
+    }
+  }
+
+  val raddr    = io.exu_to_mmu.bits.aluResult
+  val waddr    = io.exu_to_mmu.bits.aluResult
+  val rs2_data = io.exu_to_mmu.bits.rs2_data
 
   val wdata = Wire(UInt(32.W))
   val mask  = Wire(UInt(4.W))
   mask  := 0.U
   wdata := 0.U
-  switch(io.storeCtrl_i) {
+  switch(io.exu_to_mmu.bits.storeCtrl) {
 
     is(StoreCtrlEnum.sb) {
       // printf("wdata: %x\n", rs2_data)
@@ -111,7 +102,7 @@ class MMU extends Module {
   val rdata = Wire(UInt(32.W))
   rdata := 0.U
 
-  switch(io.loadCtrl_i) {
+  switch(io.exu_to_mmu.bits.loadCtrl) {
     is(LoadCtrlEnum.lb) {
       rdata := MuxLookup(raddr(1, 0), 0.U)(
         List(
@@ -159,29 +150,30 @@ class MMU extends Module {
     }
   }
 
-  io.mem_o       := rdata
-  io.imm_o       := io.imm_i
-  io.pcPlus4_o   := io.pcPlus4_i
-  io.aluResult_o := io.aluResult_i
-  io.regWen_o    := io.regWen_i
+// -----------------------------------------------------------------------------------
+  io.mmu_to_wbu.bits.mem       := rdata
+  io.mmu_to_wbu.bits.imm       := io.exu_to_mmu.bits.imm
+  io.mmu_to_wbu.bits.pcPlus4   := io.exu_to_mmu.bits.pcPlus4
+  io.mmu_to_wbu.bits.aluResult := io.exu_to_mmu.bits.aluResult
+  io.mmu_to_wbu.bits.regWen    := io.exu_to_mmu.bits.regWen
+  io.mmu_to_wbu.bits.wbSel     := io.exu_to_mmu.bits.wbSel
+
+  io.mmu_to_wbu.bits.csr_wdata := io.exu_to_mmu.bits.csr_wdata
+  io.mmu_to_wbu.bits.csr_waddr := io.exu_to_mmu.bits.csr_waddr
+  io.mmu_to_wbu.bits.csr_wen   := io.exu_to_mmu.bits.csr_wen
+  io.mmu_to_wbu.bits.csr_rdata := io.exu_to_mmu.bits.csr_rdata
+
+//-----------------------------------------------------------------------------------
 
   io.memWdata_o := wdata
   io.memRaddr_o := raddr
   io.memWaddr_o := waddr
-  io.memWen_o   := MuxLookup(io.memWen_i, 0.U)(
+  io.memWen_o   := MuxLookup(io.exu_to_mmu.bits.memWen, 0.U)(
     List(
       MemWenEnum.wen  -> 1.U,
       MemWenEnum.none -> 0.U
     )
   )
+  io.mask_o     := mask
 
-  io.wbSel_o := io.wbSel_i
-  io.mask_o  := mask
-
-  io.csr_wdata_o := io.csr_wdata_i
-  io.csr_waddr_o := io.csr_waddr_i
-  io.csr_wen_o   := io.csr_wen_i
-  io.csr_rdata_o := io.csr_rdata_i
-
-  dontTouch(io.mask_o)
 }

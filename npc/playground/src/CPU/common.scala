@@ -43,7 +43,7 @@ object WbSelEnum extends ChiselEnum {
 }
 
 object PCSelEnum extends ChiselEnum {
-  val jal, jalr, branch, pcplus4, csr = Value
+  val jal, jalr, branch, pcplus4, csr, none = Value
 }
 
 object CSRCtrlEnum extends ChiselEnum {

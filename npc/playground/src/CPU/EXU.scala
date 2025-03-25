@@ -3,113 +3,104 @@ package myCPU
 import chisel3._
 import chisel3.util._
 import scala.collection.immutable.ArraySeq
+import scala.annotation.switch
+
+object StateEXU extends ChiselEnum {
+  val sIdle, sWaitValid, sWaitReady = Value
+}
 
 class EXUIO extends Bundle {
 
-  // from idu
-  val rs1_data_i = Input(UInt(32.W))
-  val rs2_data_i = Input(UInt(32.W))
-  val imm_i      = Input(UInt(32.W))
-
-  val srcASel_i   = Input(SrcASelEnum())
-  val srcBSel_i   = Input(SrcBSelEnum())
-  val brType_i    = Input(BrTypeEnum())
-  val aluCtrl_i   = Input(AluCtrlEnum())
-  val pcSel_i     = Input(PCSelEnum())
-  val wbSel_i     = Input(WbSelEnum())
-  val regWen_i    = Input(Bool())
-  val memWen_i    = Input(MemWenEnum())
-  val loadCtrl_i  = Input(LoadCtrlEnum())
-  val storeCtrl_i = Input(StoreCtrlEnum())
-
-  val csr_rdata_i = Input(UInt(32.W))
-  val csr_wen_i   = Input(Bool())
-  val csr_waddr_i = Input(UInt(12.W))
-
-  // from ifu
-  val pc_i      = Input(UInt(32.W))
-  val pcPlus4_i = Input(UInt(32.W))
-
-  // to wbu
-  val pcPlus4_o = Output(UInt(32.W))
-  val wbSel_o   = Output(WbSelEnum())
+  val idu_to_exu = Flipped(Decoupled(new idu_to_exu_io))
+  val exu_to_mmu = Decoupled(new exu_to_mmu_io)
 
   // to ifu
   val brSel_o     = Output(BrSelEnum())
   val pcBranchJ_o = Output(UInt(32.W))
   val pcSel_o     = Output(PCSelEnum())
 
-  // to idu
-  val regWen_o = Output(Bool())
-
-  // to mmu
-  val memWen_o    = Output(MemWenEnum())
-  val loadCtrl_o  = Output(LoadCtrlEnum())
-  val storeCtrl_o = Output(StoreCtrlEnum())
-  val imm_o       = Output(UInt(32.W))
-  val rs2_data_o  = Output(UInt(32.W))
-  val aluResult_o = Output(UInt(32.W))
-
-  // csr
-  val csr_wdata_o = Output(UInt(32.W))
-  val csr_waddr_o = Output(UInt(12.W))
-  val csr_wen_o   = Output(Bool())
-  val csr_rdata_o = Output(UInt(32.W))
 }
 
 class EXU extends Module {
+  import StateEXU._
   val io = IO(new EXUIO)
+
+  io.idu_to_exu.ready := false.B
+  io.exu_to_mmu.valid := false.B
+  val state = RegInit(sIdle)
+  switch(state) {
+    is(sIdle) {
+      when(io.idu_to_exu.ready) {
+        state := sWaitValid
+      }
+    }
+    is(sWaitValid) {
+      when(io.idu_to_exu.valid) {
+        state := sWaitReady
+      }
+    }
+    is(sWaitReady) {
+      when(io.exu_to_mmu.ready) {
+        state := sIdle
+      }
+    }
+  }
 
   val alu = Module(new ALU)
 
-  val srcA = MuxLookup(io.srcASel_i, 0.U)(
+  val rs1_data  = io.idu_to_exu.bits.rs1_data
+  val rs2_data  = io.idu_to_exu.bits.rs2_data
+  val csr_rdata = io.idu_to_exu.bits.csr_rdata
+  val srcA      = MuxLookup(io.idu_to_exu.bits.srcASel, 0.U)(
     List(
-      SrcASelEnum.pc  -> io.pc_i,
-      SrcASelEnum.rs1 -> io.rs1_data_i,
-      SrcASelEnum.csr -> io.csr_rdata_i
+      SrcASelEnum.pc  -> io.idu_to_exu.bits.pc,
+      SrcASelEnum.rs1 -> rs1_data,
+      SrcASelEnum.csr -> csr_rdata
     )
   )
 
-  val srcB = MuxLookup(io.srcBSel_i, 0.U)(
+  val srcB = MuxLookup(io.idu_to_exu.bits.srcBSel, 0.U)(
     List(
-      SrcBSelEnum.imm  -> io.imm_i,
-      SrcBSelEnum.rs2  -> io.rs2_data_i,
+      SrcBSelEnum.imm  -> io.idu_to_exu.bits.imm,
+      SrcBSelEnum.rs2  -> rs2_data,
       SrcBSelEnum.zero -> 0.U,
-      SrcBSelEnum.csr  -> io.csr_rdata_i
+      SrcBSelEnum.csr  -> csr_rdata
     )
   )
   alu.io.srcA := srcA
   alu.io.srcB    := srcB
-  alu.io.aluCtrl := io.aluCtrl_i
+  alu.io.aluCtrl := io.idu_to_exu.bits.aluCtrl
 
-  val brSel = MuxCase(
+  val brType = io.idu_to_exu.bits.brType
+  val brSel  = MuxCase(
     BrSelEnum.pcplus4,
     ArraySeq(
-      (io.brType_i === BrTypeEnum.beq && io.rs1_data_i === io.rs2_data_i)              -> BrSelEnum.alu,
-      (io.brType_i === BrTypeEnum.bge && io.rs1_data_i.asSInt >= io.rs2_data_i.asSInt) -> BrSelEnum.alu,
-      (io.brType_i === BrTypeEnum.bgeu && io.rs1_data_i >= io.rs2_data_i)              -> BrSelEnum.alu,
-      (io.brType_i === BrTypeEnum.blt && io.rs1_data_i.asSInt < io.rs2_data_i.asSInt)  -> BrSelEnum.alu,
-      (io.brType_i === BrTypeEnum.bltu && io.rs1_data_i < io.rs2_data_i)               -> BrSelEnum.alu,
-      (io.brType_i === BrTypeEnum.bne && io.rs1_data_i =/= io.rs2_data_i)              -> BrSelEnum.alu
+      (brType === BrTypeEnum.beq && rs1_data === rs2_data)              -> BrSelEnum.alu,
+      (brType === BrTypeEnum.bge && rs1_data.asSInt >= rs2_data.asSInt) -> BrSelEnum.alu,
+      (brType === BrTypeEnum.bgeu && rs1_data >= rs2_data)              -> BrSelEnum.alu,
+      (brType === BrTypeEnum.blt && rs1_data.asSInt < rs2_data.asSInt)  -> BrSelEnum.alu,
+      (brType === BrTypeEnum.bltu && rs1_data < rs2_data)               -> BrSelEnum.alu,
+      (brType === BrTypeEnum.bne && rs1_data =/= rs2_data)              -> BrSelEnum.alu
     )
   )
+//-----------------------------------------------------------------------------------
+  io.exu_to_mmu.bits.pcPlus4 := io.idu_to_exu.bits.pcPlus4
+  io.exu_to_mmu.bits.wbSel     := io.idu_to_exu.bits.wbSel
+  io.exu_to_mmu.bits.regWen    := io.idu_to_exu.bits.regWen
+  io.exu_to_mmu.bits.memWen    := io.idu_to_exu.bits.memWen
+  io.exu_to_mmu.bits.loadCtrl  := io.idu_to_exu.bits.loadCtrl
+  io.exu_to_mmu.bits.storeCtrl := io.idu_to_exu.bits.storeCtrl
+  io.exu_to_mmu.bits.imm       := io.idu_to_exu.bits.imm
+  io.exu_to_mmu.bits.rs2_data  := rs2_data
+  io.exu_to_mmu.bits.aluResult := alu.io.aluResult
 
-  io.brSel_o     := brSel
-  io.pcBranchJ_o := alu.io.aluResult
+  io.exu_to_mmu.bits.csr_wdata := alu.io.aluResult
+  io.exu_to_mmu.bits.csr_wen   := io.idu_to_exu.bits.csr_wen
+  io.exu_to_mmu.bits.csr_rdata := io.idu_to_exu.bits.csr_rdata
+  io.exu_to_mmu.bits.csr_waddr := io.idu_to_exu.bits.csr_waddr
+//-----------------------------------------------------------------------------------
+  io.brSel_o                   := brSel
+  io.pcBranchJ_o               := alu.io.aluResult
+  io.pcSel_o                   := io.idu_to_exu.bits.pcSel
 
-  io.pcPlus4_o   := io.pcPlus4_i
-  io.pcSel_o     := io.pcSel_i
-  io.wbSel_o     := io.wbSel_i
-  io.regWen_o    := io.regWen_i
-  io.memWen_o    := io.memWen_i
-  io.loadCtrl_o  := io.loadCtrl_i
-  io.storeCtrl_o := io.storeCtrl_i
-  io.imm_o       := io.imm_i
-  io.rs2_data_o  := io.rs2_data_i
-  io.aluResult_o := alu.io.aluResult
-
-  io.csr_wdata_o := alu.io.aluResult
-  io.csr_wen_o   := io.csr_wen_i
-  io.csr_rdata_o := io.csr_rdata_i
-  io.csr_waddr_o := io.csr_waddr_i
 }
