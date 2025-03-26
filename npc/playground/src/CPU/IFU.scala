@@ -6,6 +6,10 @@ object StateIFU extends ChiselEnum {
   val sIdle, sWaitReady = Value
 }
 
+object StateIFUAXI extends ChiselEnum {
+  val sIdle, sWaitAR, sWaitR = Value
+}
+
 class IFUIO extends Bundle {
 
   // from idu
@@ -16,6 +20,8 @@ class IFUIO extends Bundle {
   // from csr
   val csr_i       = Input(UInt(32.W))
 
+  // axi master
+  val axi    = (new axi_lite)
 //from inst memory
   val inst_i = Input(UInt(32.W))
 
@@ -23,24 +29,45 @@ class IFUIO extends Bundle {
 }
 
 class IFU extends Module {
-  import StateIFU._
-  val io      = IO(new IFUIO)
+  val io       = IO(new IFUIO)
   // 状态机寄存器
-  val state   = RegInit(sIdle)
-  dontTouch(state)
+  val state    = RegInit(StateIFU.sIdle)
+  val stateAXI = RegInit(StateIFUAXI.sIdle)
+
 //状态转移
-  switch(state) {
-    is(sIdle) {
-      when(io.ifu_to_idu.valid) {
-        state := sWaitReady
+  switch(stateAXI) {
+    is(StateIFUAXI.sIdle) {
+      when(state === StateIFU.sIdle) {
+        stateAXI := StateIFUAXI.sWaitAR
       }
     }
-    is(sWaitReady) {
-      when(io.ifu_to_idu.ready) {
-        state := sIdle
+
+    is(StateIFUAXI.sWaitAR) {
+      when(io.axi.ar.ready) {
+        stateAXI := StateIFUAXI.sWaitR
+      }
+    }
+
+    is(StateIFUAXI.sWaitR) {
+      when(io.axi.r.valid) {
+        stateAXI := StateIFUAXI.sIdle
       }
     }
   }
+
+  switch(state) {
+    is(StateIFU.sIdle) {
+      when(io.ifu_to_idu.valid) {
+        state := StateIFU.sWaitReady
+      }
+    }
+    is(StateIFU.sWaitReady) {
+      when(io.ifu_to_idu.ready) {
+        state := StateIFU.sIdle
+      }
+    }
+  }
+  val inst    = RegInit(0.U(32.W))
   val PC      = RegInit("h80000000".U(32.W))
   val pcPlus4 = PC + 4.U
 
@@ -66,6 +93,28 @@ class IFU extends Module {
     )
   )
   PC := PCNext
+//--------------------------------------------------------------------------------------
+//axi 信号
+//写通道关闭
+  io.axi.aw.addr  := 0.U
+  io.axi.aw.valid := false.B
+
+  io.axi.w.data  := 0.U
+  io.axi.w.strb  := 0.U
+  io.axi.w.valid := false.B
+
+  io.axi.b.ready  := false.B
+//读通道
+  io.axi.ar.addr  := PC
+  io.axi.ar.valid := stateAXI === StateIFUAXI.sWaitAR
+
+  io.axi.r.ready      := stateAXI === StateIFUAXI.sWaitR // 可以是常1
+//--------------------------------------------------------------------------------------
+  inst                := Mux(
+    (stateAXI === StateIFUAXI.sWaitR && io.axi.r.ready === true.B && io.axi.r.valid === true.B).asBool,
+    io.axi.r.data,
+    inst
+  )
 //--------------------------------------------------------------
   // 由instFetch影响
   io.ifu_to_idu.valid := true.B
