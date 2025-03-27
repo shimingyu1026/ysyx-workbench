@@ -20,39 +20,58 @@ class IFUIO extends Bundle {
   val pcUpdate    = Input(Bool())
   // from csr
   val csr_i       = Input(UInt(32.W))
+//for sim
+  val inst_o      = Output(UInt(32.W))
+
+  val wbFlag = Input(Bool())
 
   // axi master
-  val axi    = (new axi_lite)
-//from inst memory
-  val inst_i = Input(UInt(32.W))
-
+  val axi        = (new axi_lite)
   val ifu_to_idu = Decoupled(new ifu_idu_io)
 }
 
 class IFU extends Module {
-  val io       = IO(new IFUIO)
+  val io = IO(new IFUIO)
+
+  val inst     = RegInit(0.U(32.W))
+  val PC       = RegInit("h80000000".U(32.W))
+  val pcPlus4  = PC + 4.U
   // 状态机寄存器
   val state    = RegInit(StateIFU.sIdle)
   val stateAXI = RegInit(StateIFUAXI.sIdle)
-
-//状态转移
   switch(stateAXI) {
     is(StateIFUAXI.sIdle) {
-      when(state === StateIFU.sIdle & io.pcUpdate) {
+      when(DEBUG.PRINTF) {
+        printf("IFU AXI state: idle\n")
+      }
+
+      when((state === StateIFU.sIdle & io.pcUpdate) | ((PC === "h80000000".U(32.W)))) {
         stateAXI := StateIFUAXI.sWaitAR
       }
     }
     is(StateIFUAXI.sWaitAR) {
+      when(DEBUG.PRINTF) {
+        printf("IFU AXI state: wait ar\n")
+      }
+
       when(io.axi.ar.ready) {
         stateAXI := StateIFUAXI.sWaitR
       }
     }
     is(StateIFUAXI.sWaitR) {
+      when(DEBUG.PRINTF) {
+        printf("IFU AXI state: wait r\n")
+      }
+
       when(io.axi.r.valid) {
         stateAXI := StateIFUAXI.sNothing
       }
     }
     is(StateIFUAXI.sNothing) {
+      when(DEBUG.PRINTF) {
+        printf("IFU AXI state: nothing\n")
+      }
+
       when(io.ifu_to_idu.valid & io.ifu_to_idu.ready) // 握手成功
       {
         stateAXI := StateIFUAXI.sIdle
@@ -62,19 +81,22 @@ class IFU extends Module {
 
   switch(state) {
     is(StateIFU.sIdle) {
+      when(DEBUG.PRINTF) { printf("IFU state: idle\n") }
+
       when(io.ifu_to_idu.valid) {
         state := StateIFU.sWaitReady
       }
     }
     is(StateIFU.sWaitReady) {
+      when(DEBUG.PRINTF) {
+        printf("IFU state: wait ready\n")
+      }
+
       when(io.ifu_to_idu.ready) {
         state := StateIFU.sIdle
       }
     }
   }
-  val inst    = RegInit(0.U(32.W))
-  val PC      = RegInit("h80000000".U(32.W))
-  val pcPlus4 = PC + 4.U
 
   val jalPC  = io.pcBranchJ_i
   val jalrPC = io.pcBranchJ_i & "hfffffffe".U
@@ -97,7 +119,16 @@ class IFU extends Module {
       PCSelEnum.none    -> PC
     )
   )
-  PC := PCNext
+  when(DEBUG.PRINTF) {
+    printf("pc next: %x\n", PCNext)
+  }
+
+  when(io.pcUpdate) {
+    PC := PCNext
+  }.otherwise {
+    PC := PC
+  }
+
 //--------------------------------------------------------------------------------------
 //axi 信号
 //写通道关闭
@@ -116,19 +147,35 @@ class IFU extends Module {
   io.axi.r.ready      := stateAXI === StateIFUAXI.sWaitR // 可以是常1
 //--------------------------------------------------------------------------------------
   // axi 信号影响
+  // printf("IFU io.axi.r.data: %x\n", io.axi.r.data)
+  // printf("IFU io.axi.r.valid: %x\n", io.axi.r.valid)
+  // printf("IFU io.axi.r.ready: %x\n", io.axi.r.ready)
   when(stateAXI === StateIFUAXI.sWaitR & io.axi.r.valid & io.axi.r.ready) {
     inst := io.axi.r.data
   }.otherwise {
     inst := inst
   }
-  io.ifu_to_idu.valid := stateAXI === StateIFUAXI.sNothing
+  io.ifu_to_idu.valid := stateAXI === StateIFUAXI.sNothing | ((PC === "h80000000".U(32.W)))
 //--------------------------------------------------------------
 
   // 数据
   io.ifu_to_idu.bits.pc      := PC
-  io.ifu_to_idu.bits.inst    := io.inst_i
+  io.ifu_to_idu.bits.inst    := inst
   io.ifu_to_idu.bits.pcPlus4 := pcPlus4
   // ---------------------------------------------------------------
   // printf("io.pcBranchJ_i: %x\n", io.pcBranchJ_i)
+  io.inst_o                  := inst
+
+  val traceDiff = Module(new traceDiff)
+
+  traceDiff.io.clock := clock
+  traceDiff.io.call  := io.pcUpdate
+}
+
+class traceDiff extends BlackBox {
+  val io = IO(new Bundle {
+    val clock = Input(Clock())
+    val call  = Input(Bool())
+  })
   dontTouch(io)
 }

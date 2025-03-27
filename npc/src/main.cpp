@@ -7,6 +7,8 @@ void reset(CPU *cpu);
 extern "C" word_t mem_read(vaddr_t addr, int len);
 extern "C" void mem_write(vaddr_t addr, word_t data, char mask);
 extern "C" void npcTrapHandler();
+extern "C" void call_trace_diff();
+extern "C" void uncall_trace_diff();
 
 int main(int argc, char **argv)
 {

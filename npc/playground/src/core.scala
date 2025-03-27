@@ -4,16 +4,11 @@ import chisel3._
 import chisel3.util._
 
 class coreIO extends Bundle {
+
+  val axi_1  = new axi_lite()
+  val axi_2  = new axi_lite()
   val pc_o   = Output(UInt(32.W))
-  val inst_i = Input(UInt(32.W))
-
-  val memRdata_i = Input(UInt(32.W))
-
-  val memWdata_o = Output(UInt(32.W))
-  val memRaddr_o = Output(UInt(32.W))
-  val memWaddr_o = Output(UInt(32.W))
-  val memWen_o   = Output(Bool())
-  val mask_o     = Output(UInt(4.W))
+  val inst_o = Output(UInt(32.W))
 
   val npcTrap = Output(Bool())
 
@@ -37,9 +32,9 @@ class core extends Module {
   ifu.io.pcSel_i     := exu.io.pcSel_o
   ifu.io.brSel_i     := exu.io.brSel_o
   ifu.io.pcBranchJ_i := exu.io.pcBranchJ_o
-  ifu.io.inst_i      := io.inst_i
   ifu.io.csr_i       := idu.io.csr_o
-  ifu.io.pcUpdate    := exu.io.pcUpdate
+  ifu.io.pcUpdate    := wbu.io.pcUpdate
+  ifu.io.wbFlag      := wbu.io.wbFlag
 
   idu.io.wbdata_i    := wbu.io.wbData_o
   idu.io.regWen_i    := wbu.io.regWen_o
@@ -47,17 +42,14 @@ class core extends Module {
   idu.io.csr_waddr_i := wbu.io.csr_waddr_o
   idu.io.csr_wdata_i := wbu.io.csr_wdata_o
 
-  mmu.io.memRdata_i := io.memRdata_i
-
-  io.pc_o       := ifu.io.ifu_to_idu.bits.pc
-  io.memWdata_o := mmu.io.memWdata_o
-  io.memRaddr_o := mmu.io.memRaddr_o
-  io.memWaddr_o := mmu.io.memWaddr_o
-  io.memWen_o   := mmu.io.memWen_o
-  io.mask_o     := mmu.io.mask_o
+  io.pc_o   := ifu.io.ifu_to_idu.bits.pc
+  io.inst_o := ifu.io.inst_o
 
   io.npcTrap := idu.io.npcTrap
 
   io.regs := idu.io.regs
+
+  io.axi_1 <> ifu.io.axi
+  io.axi_2 <> mmu.io.axi
 
 }

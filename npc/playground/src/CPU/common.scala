@@ -49,3 +49,7 @@ object PCSelEnum extends ChiselEnum {
 object CSRCtrlEnum extends ChiselEnum {
   val mret, ecall, none = Value
 }
+
+object DEBUG {
+  val PRINTF = false.B
+}

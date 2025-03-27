@@ -3,7 +3,15 @@
 
 bool npcTrap = false;
 static uint64_t g_timer = 0; // unit: us
-
+bool traceDiff = false;
+extern "C" void call_trace_diff()
+{
+    traceDiff = true;
+}
+extern "C" void uncall_trace_diff()
+{
+    traceDiff = false;
+}
 extern "C" void npcTrapHandler()
 {
     npcTrap = true;
@@ -30,26 +38,34 @@ static void exec_once(CPU *cpu)
     cpu->top->eval();
     cpu->top->clock = 1;
     cpu->top->eval();
-#ifdef CONFIG_ITRACE
-    char *p = cpu->logbuf;
-    p += snprintf(p, sizeof(cpu->logbuf), FMT_WORD ":", cpu->lnpc);
-    int ilen = cpu->snpc - cpu->lnpc;
-    int i;
-    uint8_t *inst = (uint8_t *)&cpu->linst;
-    for (i = ilen - 1; i >= 0; i--)
+    if (traceDiff)
     {
-        p += snprintf(p, 4, " %02x", inst[i]);
+        // printf("current pc: %x\n", cpu->lnpc);
+        // printf("current inst: %x\n", cpu->linst);
     }
-    int ilen_max = 4;
-    int space_len = ilen_max - ilen;
-    if (space_len < 0)
-        space_len = 0;
-    space_len = space_len * 3 + 1;
-    memset(p, ' ', space_len);
-    p += space_len;
-    void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
-    disassemble(p, cpu->logbuf + sizeof(cpu->logbuf) - p,
-                cpu->lnpc, (uint8_t *)&cpu->linst, ilen);
+#ifdef CONFIG_ITRACE
+    if (traceDiff)
+    {
+        char *p = cpu->logbuf;
+        p += snprintf(p, sizeof(cpu->logbuf), FMT_WORD ":", cpu->lnpc);
+        int ilen = cpu->snpc - cpu->lnpc;
+        int i;
+        uint8_t *inst = (uint8_t *)&cpu->linst;
+        for (i = ilen - 1; i >= 0; i--)
+        {
+            p += snprintf(p, 4, " %02x", inst[i]);
+        }
+        int ilen_max = 4;
+        int space_len = ilen_max - ilen;
+        if (space_len < 0)
+            space_len = 0;
+        space_len = space_len * 3 + 1;
+        memset(p, ' ', space_len);
+        p += space_len;
+        void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
+        disassemble(p, cpu->logbuf + sizeof(cpu->logbuf) - p,
+                    cpu->lnpc, (uint8_t *)&cpu->linst, ilen);
+    }
 #endif
 }
 static void execute(uint64_t n, CPU *cpu)
@@ -57,7 +73,10 @@ static void execute(uint64_t n, CPU *cpu)
     for (; n > 0; n--)
     {
         exec_once(cpu);
-        trace_and_difftest(cpu, *(vaddr_t *)cpu->pc);
+        if (traceDiff)
+        {
+            trace_and_difftest(cpu, *(vaddr_t *)cpu->pc);
+        }
         if (npcTrap)
         {
             break;

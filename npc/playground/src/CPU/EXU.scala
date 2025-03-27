@@ -18,7 +18,6 @@ class EXUIO extends Bundle {
   val brSel_o     = Output(BrSelEnum())
   val pcBranchJ_o = Output(UInt(32.W))
   val pcSel_o     = Output(PCSelEnum())
-  val pcUpdate    = Output(Bool())
 
 }
 
@@ -26,21 +25,31 @@ class EXU extends Module {
   import StateEXU._
   val io    = IO(new EXUIO)
   val state = RegInit(sIdle)
-  io.idu_to_exu.ready := false.B
+  io.idu_to_exu.ready := true.B
   io.exu_to_mmu.valid := state === sWaitReady
 
   switch(state) {
     is(sIdle) {
+      when(DEBUG.PRINTF) {
+        printf("exu state: idle\n")
+      }
+
       when(io.idu_to_exu.ready) {
         state := sWaitValid
       }
     }
     is(sWaitValid) {
+      when(DEBUG.PRINTF) {
+        printf("exu state: wait valid\n")
+      }
+
       when(io.idu_to_exu.valid) {
         state := sWaitReady
       }
     }
     is(sWaitReady) {
+      when(DEBUG.PRINTF) { printf("exu state : wait ready\n") }
+
       when(io.exu_to_mmu.ready) {
         state := sIdle
       }
@@ -104,7 +113,5 @@ class EXU extends Module {
   io.brSel_o                   := brSel
   io.pcBranchJ_o               := alu.io.aluResult
   io.pcSel_o                   := io.idu_to_exu.bits.pcSel
-
-  io.pcUpdate := io.exu_to_mmu.valid & io.exu_to_mmu.ready
 
 }

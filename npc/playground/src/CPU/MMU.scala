@@ -14,16 +14,6 @@ class MMUIO        extends Bundle     {
   val mmu_to_wbu = Decoupled(new mmu_to_wbu_io)
   val axi        = new axi_lite()
 
-  // from memory
-  val memRdata_i = Input(UInt(32.W))
-
-  // to memory
-  val memWdata_o = Output(UInt(32.W))
-  val memRaddr_o = Output(UInt(32.W))
-  val memWaddr_o = Output(UInt(32.W))
-  val memWen_o   = Output(Bool())
-  val mask_o     = Output(UInt(4.W))
-
 }
 
 class MMU extends Module {
@@ -37,7 +27,11 @@ class MMU extends Module {
 
   switch(stateAXI) {
     is(StateMMUAXI.sIdle) {
-      when(state === StateMMU.sWaitReady & io.exu_to_mmu.valid) {
+      when(DEBUG.PRINTF) {
+        printf("mmu AXI state: sIdle\n")
+      }
+
+      when(state === StateMMU.sWaitValid & io.exu_to_mmu.fire) {
         when(io.exu_to_mmu.bits.memValid === 0.U) {
           stateAXI := StateMMUAXI.sNothing
         }.elsewhen(io.exu_to_mmu.bits.memValid === 1.U & (io.exu_to_mmu.bits.memWen === MemWenEnum.none)) {
@@ -49,36 +43,58 @@ class MMU extends Module {
     }
 
     is(StateMMUAXI.sWaitAW) {
+      when(DEBUG.PRINTF) {
+        printf("mmu AXI state: sWaitAW\n")
+      }
+
       when(io.axi.aw.ready) {
         stateAXI := StateMMUAXI.sWaitW
       }
     }
 
     is(StateMMUAXI.sWaitW) {
+      when(DEBUG.PRINTF) {
+        printf("mmu AXI state: sWaitW\n")
+      }
+
       when(io.axi.w.ready) {
         stateAXI := StateMMUAXI.sWaitB
       }
     }
 
     is(StateMMUAXI.sWaitB) {
+      when(DEBUG.PRINTF) {
+
+        printf("mmu AXI state: sWaitB\n")
+      }
       when(io.axi.b.valid) {
         stateAXI := StateMMUAXI.sNothing
       }
     }
 
     is(StateMMUAXI.sWaitAR) {
+      when(DEBUG.PRINTF) {
+        printf("mmu AXI state: sWaitAR\n")
+      }
+
       when(io.axi.ar.ready) {
         stateAXI := StateMMUAXI.sWaitR
       }
     }
 
     is(StateMMUAXI.sWaitR) {
+      when(DEBUG.PRINTF) {
+        printf("mmu AXI state: sWaitR\n")
+      }
+
       when(io.axi.r.valid) {
         stateAXI := StateMMUAXI.sNothing
       }
     }
 
     is(StateMMUAXI.sNothing) {
+      when(DEBUG.PRINTF) { printf("mmu AXI state: sNothing\n") }
+
       when(io.mmu_to_wbu.ready & io.mmu_to_wbu.ready) {
         stateAXI := StateMMUAXI.sIdle
       }
@@ -86,36 +102,42 @@ class MMU extends Module {
   }
   switch(state) {
     is(StateMMU.sIdle) {
+      when(DEBUG.PRINTF) {
+        printf("mmu state: sIdle\n")
+      }
+
       when(io.exu_to_mmu.ready) {
         state := StateMMU.sWaitValid
       }
     }
     is(StateMMU.sWaitValid) {
+      when(DEBUG.PRINTF) {
+        printf("mmu state: sWaitValid\n")
+      }
+
       when(io.exu_to_mmu.valid) {
         state := StateMMU.sWaitReady
       }
     }
     is(StateMMU.sWaitReady) {
+      when(DEBUG.PRINTF) {
+        printf("mmu state: sWaitReady\n")
+      }
+
       when(io.mmu_to_wbu.ready & io.mmu_to_wbu.valid) {
         state := StateMMU.sIdle
       }
     }
   }
 
-  val raddr    = io.exu_to_mmu.bits.aluResult
-  val waddr    = io.exu_to_mmu.bits.aluResult
-  val rs2_data = io.exu_to_mmu.bits.rs2_data
-  val axi_addr = RegInit(0.U(32.W))
-  axi_addr := io.exu_to_mmu.bits.aluResult
-  val axi_wdata = RegInit(0.U(32.W))
+  val raddr     = io.exu_to_mmu.bits.aluResult
+  val waddr     = io.exu_to_mmu.bits.aluResult
+  val rs2_data  = io.exu_to_mmu.bits.rs2_data
   val axi_rdata = RegInit(0.U(32.W))
-  val axi_strb  = RegInit(0.U(4.W))
   val wdata     = Wire(UInt(32.W))
   val mask      = Wire(UInt(4.W))
-  axi_wdata := wdata
-  axi_strb  := mask
-  mask      := 0.U
-  wdata     := 0.U
+  mask  := 0.U
+  wdata := 0.U
   switch(io.exu_to_mmu.bits.storeCtrl) {
 
     is(StoreCtrlEnum.sb) {
@@ -165,10 +187,10 @@ class MMU extends Module {
     is(LoadCtrlEnum.lb) {
       rdata := MuxLookup(raddr(1, 0), 0.U)(
         List(
-          0.U -> Cat(Fill(24, io.memRdata_i(7)), io.memRdata_i(7, 0)),
-          1.U -> Cat(Fill(24, io.memRdata_i(15)), io.memRdata_i(15, 8)),
-          2.U -> Cat(Fill(24, io.memRdata_i(23)), io.memRdata_i(23, 16)),
-          3.U -> Cat(Fill(24, io.memRdata_i(31)), io.memRdata_i(31, 24))
+          0.U -> Cat(Fill(24, axi_rdata(7)), axi_rdata(7, 0)),
+          1.U -> Cat(Fill(24, axi_rdata(15)), axi_rdata(15, 8)),
+          2.U -> Cat(Fill(24, axi_rdata(23)), axi_rdata(23, 16)),
+          3.U -> Cat(Fill(24, axi_rdata(31)), axi_rdata(31, 24))
         )
       )
     }
@@ -176,10 +198,10 @@ class MMU extends Module {
     is(LoadCtrlEnum.lbu) {
       rdata := MuxLookup(raddr(1, 0), 0.U)(
         List(
-          0.U -> Cat(Fill(24, 0.U), io.memRdata_i(7, 0)),
-          1.U -> Cat(Fill(24, 0.U), io.memRdata_i(15, 8)),
-          2.U -> Cat(Fill(24, 0.U), io.memRdata_i(23, 16)),
-          3.U -> Cat(Fill(24, 0.U), io.memRdata_i(31, 24))
+          0.U -> Cat(Fill(24, 0.U), axi_rdata(7, 0)),
+          1.U -> Cat(Fill(24, 0.U), axi_rdata(15, 8)),
+          2.U -> Cat(Fill(24, 0.U), axi_rdata(23, 16)),
+          3.U -> Cat(Fill(24, 0.U), axi_rdata(31, 24))
         )
       )
     }
@@ -187,9 +209,9 @@ class MMU extends Module {
     is(LoadCtrlEnum.lhu) {
       rdata := MuxLookup(raddr(1, 0), 0.U)(
         List(
-          0.U -> Cat(Fill(16, 0.U), io.memRdata_i(15, 0)),
-          1.U -> Cat(Fill(16, 0.U), io.memRdata_i(23, 8)),
-          2.U -> Cat(Fill(16, 0.U), io.memRdata_i(31, 16))
+          0.U -> Cat(Fill(16, 0.U), axi_rdata(15, 0)),
+          1.U -> Cat(Fill(16, 0.U), axi_rdata(23, 8)),
+          2.U -> Cat(Fill(16, 0.U), axi_rdata(31, 16))
         )
       )
     }
@@ -197,29 +219,29 @@ class MMU extends Module {
     is(LoadCtrlEnum.lh) {
       rdata := MuxLookup(raddr(1, 0), 0.U)(
         List(
-          0.U -> Cat(Fill(16, io.memRdata_i(15)), io.memRdata_i(15, 0)),
-          1.U -> Cat(Fill(16, io.memRdata_i(23)), io.memRdata_i(23, 8)),
-          2.U -> Cat(Fill(16, io.memRdata_i(31)), io.memRdata_i(31, 16))
+          0.U -> Cat(Fill(16, axi_rdata(15)), axi_rdata(15, 0)),
+          1.U -> Cat(Fill(16, axi_rdata(23)), axi_rdata(23, 8)),
+          2.U -> Cat(Fill(16, axi_rdata(31)), axi_rdata(31, 16))
         )
       )
     }
 
     is(LoadCtrlEnum.lw) {
-      rdata := io.memRdata_i
+      rdata := axi_rdata
     }
   }
 //--------------------------------------------------------------------------
 // axi 信号
-  io.axi.ar.addr  := axi_addr
+  io.axi.ar.addr  := raddr
   io.axi.ar.valid := stateAXI === StateMMUAXI.sWaitAR
 
   io.axi.r.ready := stateAXI === StateMMUAXI.sWaitR
 
-  io.axi.aw.addr  := axi_addr
+  io.axi.aw.addr  := waddr
   io.axi.aw.valid := stateAXI === StateMMUAXI.sWaitAW
 
-  io.axi.w.data  := axi_wdata // TODO
-  io.axi.w.strb  := axi_strb  // TODO
+  io.axi.w.data  := wdata // TODO
+  io.axi.w.strb  := mask  // TODO
   io.axi.w.valid := stateAXI === StateMMUAXI.sWaitW
 
   io.axi.b.ready               := stateAXI === StateMMUAXI.sWaitB
@@ -245,16 +267,5 @@ class MMU extends Module {
   io.mmu_to_wbu.bits.csr_rdata := io.exu_to_mmu.bits.csr_rdata
 
 //-----------------------------------------------------------------------------------
-
-  io.memWdata_o := wdata
-  io.memRaddr_o := raddr
-  io.memWaddr_o := waddr
-  io.memWen_o   := MuxLookup(io.exu_to_mmu.bits.memWen, 0.U)(
-    List(
-      MemWenEnum.wen  -> 1.U,
-      MemWenEnum.none -> 0.U
-    )
-  )
-  io.mask_o     := mask
 
 }

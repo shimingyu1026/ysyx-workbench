@@ -64,6 +64,7 @@ class exu_to_mmu_io extends Bundle {
   val csr_waddr = Output(UInt(12.W))
   val csr_wen   = Output(Bool())
   val csr_rdata = Output(UInt(32.W))
+
 }
 
 class mmu_to_wbu_io extends Bundle {

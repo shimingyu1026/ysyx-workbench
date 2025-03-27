@@ -31,22 +31,34 @@ class IDUIO     extends Bundle     {
 class IDU extends Module {
   val io    = IO(new IDUIO)
   val state = RegInit(StateIDU.sIdle)
-  
+
   io.ifu_to_idu.ready := true.B
   io.idu_to_exu.valid := state === StateIDU.sWaitReady
 
   switch(state) {
     is(StateIDU.sIdle) {
+      when(DEBUG.PRINTF) {
+        printf("IDU state: sIdle\n")
+      }
+
       when(io.ifu_to_idu.ready) {
         state := StateIDU.sWaitValid
       }
     }
     is(StateIDU.sWaitValid) {
+      when(DEBUG.PRINTF) {
+        printf("IDU state: sWaitValid\n")
+      }
+
       when(io.ifu_to_idu.valid) {
         state := StateIDU.sWaitReady
       }
     }
     is(StateIDU.sWaitReady) {
+      when(DEBUG.PRINTF) {
+        printf("IDU state: sWaitReady\n")
+      }
+
       when(io.idu_to_exu.ready) {
         state := StateIDU.sIdle
       }
