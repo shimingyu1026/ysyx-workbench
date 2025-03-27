@@ -7,7 +7,7 @@ object StateIFU extends ChiselEnum {
 }
 
 object StateIFUAXI extends ChiselEnum {
-  val sIdle, sWaitAR, sWaitR = Value
+  val sIdle, sWaitAR, sWaitR, sNothing = Value
 }
 
 class IFUIO extends Bundle {
@@ -17,6 +17,7 @@ class IFUIO extends Bundle {
   val brSel_i     = Input(BrSelEnum())
   // from exu
   val pcBranchJ_i = Input(UInt(32.W))
+  val pcUpdate    = Input(Bool())
   // from csr
   val csr_i       = Input(UInt(32.W))
 
@@ -37,19 +38,23 @@ class IFU extends Module {
 //状态转移
   switch(stateAXI) {
     is(StateIFUAXI.sIdle) {
-      when(state === StateIFU.sIdle) {
+      when(state === StateIFU.sIdle & io.pcUpdate) {
         stateAXI := StateIFUAXI.sWaitAR
       }
     }
-
     is(StateIFUAXI.sWaitAR) {
       when(io.axi.ar.ready) {
         stateAXI := StateIFUAXI.sWaitR
       }
     }
-
     is(StateIFUAXI.sWaitR) {
       when(io.axi.r.valid) {
+        stateAXI := StateIFUAXI.sNothing
+      }
+    }
+    is(StateIFUAXI.sNothing) {
+      when(io.ifu_to_idu.valid & io.ifu_to_idu.ready) // 握手成功
+      {
         stateAXI := StateIFUAXI.sIdle
       }
     }
@@ -110,14 +115,14 @@ class IFU extends Module {
 
   io.axi.r.ready      := stateAXI === StateIFUAXI.sWaitR // 可以是常1
 //--------------------------------------------------------------------------------------
-  inst                := Mux(
-    (stateAXI === StateIFUAXI.sWaitR && io.axi.r.ready === true.B && io.axi.r.valid === true.B).asBool,
-    io.axi.r.data,
-    inst
-  )
+  // axi 信号影响
+  when(stateAXI === StateIFUAXI.sWaitR & io.axi.r.valid & io.axi.r.ready) {
+    inst := io.axi.r.data
+  }.otherwise {
+    inst := inst
+  }
+  io.ifu_to_idu.valid := stateAXI === StateIFUAXI.sNothing
 //--------------------------------------------------------------
-  // 由instFetch影响
-  io.ifu_to_idu.valid := true.B
 
   // 数据
   io.ifu_to_idu.bits.pc      := PC

@@ -39,6 +39,7 @@ class core extends Module {
   ifu.io.pcBranchJ_i := exu.io.pcBranchJ_o
   ifu.io.inst_i      := io.inst_i
   ifu.io.csr_i       := idu.io.csr_o
+  ifu.io.pcUpdate    := exu.io.pcUpdate
 
   idu.io.wbdata_i    := wbu.io.wbData_o
   idu.io.regWen_i    := wbu.io.regWen_o

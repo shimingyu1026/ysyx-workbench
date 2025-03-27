@@ -29,27 +29,26 @@ class IDUIO     extends Bundle     {
 }
 
 class IDU extends Module {
-  import StateIDU._
-  val io = IO(new IDUIO)
+  val io    = IO(new IDUIO)
+  val state = RegInit(StateIDU.sIdle)
+  
+  io.ifu_to_idu.ready := true.B
+  io.idu_to_exu.valid := state === StateIDU.sWaitReady
 
-  io.ifu_to_idu.ready := false.B
-  io.idu_to_exu.valid := false.B
-
-  val state = RegInit(sIdle)
   switch(state) {
-    is(sIdle) {
+    is(StateIDU.sIdle) {
       when(io.ifu_to_idu.ready) {
-        state := sWaitValid
+        state := StateIDU.sWaitValid
       }
     }
-    is(sWaitValid) {
+    is(StateIDU.sWaitValid) {
       when(io.ifu_to_idu.valid) {
-        state := sWaitReady
+        state := StateIDU.sWaitReady
       }
     }
-    is(sWaitReady) {
+    is(StateIDU.sWaitReady) {
       when(io.idu_to_exu.ready) {
-        state := sIdle
+        state := StateIDU.sIdle
       }
     }
   }
@@ -95,6 +94,7 @@ class IDU extends Module {
   io.idu_to_exu.bits.brType    := decoder.io.brType
   io.idu_to_exu.bits.storeCtrl := decoder.io.storeCtrl
   io.idu_to_exu.bits.loadCtrl  := decoder.io.loadCtrl
+  io.idu_to_exu.bits.memValid  := decoder.io.memValid
   io.idu_to_exu.bits.memWen    := decoder.io.memWen
   io.idu_to_exu.bits.regWen    := decoder.io.regWen
   io.idu_to_exu.bits.wbSel     := decoder.io.wbSel

@@ -22,6 +22,7 @@ class idu_to_exu_io extends Bundle {
   val brType  = Output(BrTypeEnum())
 
   // to mmu
+  val memValid  = Output(Bool())
   val storeCtrl = Output(StoreCtrlEnum())
   val loadCtrl  = Output(LoadCtrlEnum())
   val memWen    = Output(MemWenEnum())
@@ -50,6 +51,7 @@ class exu_to_mmu_io extends Bundle {
   val regWen  = Output(Bool())
 
   // to mmu
+  val memValid  = Output(Bool())
   val memWen    = Output(MemWenEnum())
   val loadCtrl  = Output(LoadCtrlEnum())
   val storeCtrl = Output(StoreCtrlEnum())

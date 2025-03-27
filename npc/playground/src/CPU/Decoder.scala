@@ -18,6 +18,7 @@ class decoderIO extends Bundle {
   val aluCtrl = Output(AluCtrlEnum())
 
   // to mmu
+  val memValid  = Output(Bool())
   val memWen    = Output(MemWenEnum())
   val loadCtrl  = Output(LoadCtrlEnum())
   val storeCtrl = Output(StoreCtrlEnum())
@@ -74,7 +75,8 @@ class decoder extends Module {
       BrType,
       MemWen,
       LoadCtrl,
-      StoreCtrl
+      StoreCtrl,
+      MemValid
     )
 
   val decodeTable  = new DecodeTable(instList, allFields)
@@ -94,6 +96,7 @@ class decoder extends Module {
   io.npcTrap   := decodeResult(NPCTrap)
   io.csr_wen   := decodeResult(CSRWen)
   io.csr_ctrl  := decodeResult(CSRCtrl)
+  io.memValid  := decodeResult(MemValid)
 
   instList.foreach { instruction =>
     println(instruction.inst.toString)
@@ -152,7 +155,7 @@ object PCSel extends DecodeField[InstructionPattern, PCSelEnum.Type] {
   }
 }
 
-object WbSel extends DecodeField[InstructionPattern, WbSelEnum.Type] {
+object WbSel    extends DecodeField[InstructionPattern, WbSelEnum.Type]  {
   override def name       = "wb_sel"
   override def chiselType = WbSelEnum()
   override def genTable(i: InstructionPattern): BitPat = {
@@ -166,8 +169,18 @@ object WbSel extends DecodeField[InstructionPattern, WbSelEnum.Type] {
     BitPat(sel.litValue.U((sel.getWidth).W))
   }
 }
-
-object MemWen extends DecodeField[InstructionPattern, MemWenEnum.Type] {
+object MemValid extends DecodeField[InstructionPattern, Bool]            {
+  override def name       = "mem_valid"
+  override def chiselType = Bool()
+  override def genTable(i: InstructionPattern): BitPat = {
+    val valid = i.inst.name match {
+      case "sb" | "sh" | "sw" | "lb" | "lbu" | "lh" | "lhu" | "lw" => true.B
+      case _                                                       => false.B
+    }
+    BitPat(valid.litValue.U((valid.getWidth).W))
+  }
+}
+object MemWen   extends DecodeField[InstructionPattern, MemWenEnum.Type] {
   override def name       = "mem_wen"
   override def chiselType = MemWenEnum()
   override def genTable(i: InstructionPattern): BitPat = {
