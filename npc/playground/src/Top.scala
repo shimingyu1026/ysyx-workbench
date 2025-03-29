@@ -13,13 +13,18 @@ class top extends Module {
     val regs = Output(Vec(32, UInt(32.W)))
   })
 
-  val core      = Module(new core)
-  val trap      = Module(new trap)
-  val instrSRAM = Module(new sram)
-  val dataSRAM  = Module(new sram)
+  val core    = Module(new core)
+  val trap    = Module(new trap)
+  // val instrSRAM = Module(new sram)
+  // val dataSRAM  = Module(new sram)
+  val sram    = Module(new sram)
+  val arbiter = Module(new Arb)
 
-  instrSRAM.io.axi <> core.io.axi_1
-  dataSRAM.io.axi <> core.io.axi_2
+  // instrSRAM.io.axi <> core.io.axi_1
+  // dataSRAM.io.axi <> core.io.axi_2
+  core.io.axi_1 <> arbiter.io.axi_in_1
+  core.io.axi_2 <> arbiter.io.axi_in_2
+  sram.io.axi <> arbiter.io.axi_out
 
   io.npcTrap := core.io.npcTrap
   io.inst_o  := core.io.inst_o
