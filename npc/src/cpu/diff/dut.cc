@@ -7,8 +7,16 @@
 #include <difftest-def.h>
 typedef struct
 {
+    word_t mcause;
+    vaddr_t mepc;
+    word_t mstatus;
+    word_t mtvec;
+} riscv32_CSR;
+typedef struct
+{
     word_t gpr[32];
     vaddr_t pc;
+    riscv32_CSR csr;
 } CPU_state;
 // 同步内存数据。
 void (*ref_difftest_memcpy)(paddr_t addr, void *buf, size_t n, bool direction) = NULL;
@@ -92,6 +100,10 @@ void cpu_copy(const CPU *cpu, CPU_state *state)
         state->gpr[i] = cpu->regs[i];
     }
     state->pc = *(vaddr_t *)cpu->pc;
+    state->csr.mstatus = *(vaddr_t *)cpu->mstatus;
+    state->csr.mtvec = *(vaddr_t *)cpu->mtvec;
+    state->csr.mepc = *(vaddr_t *)cpu->inst;
+    state->csr.mcause = *(vaddr_t *)cpu->macause;
 }
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc)
 {
@@ -111,6 +123,17 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc)
             return false;
         }
     }
+
+    //-------------------------CSR-------------------------------------------------------------
+
+    if (dut_state.csr.mstatus != ref_r->csr.mstatus)
+    {
+        Log("%s csr is different after executing instruction at pc = " FMT_WORD
+            ", csrs =  %s,right = " FMT_WORD ",wrong = " FMT_WORD ", diff = " FMT_WORD,
+            "npc", pc, "mstatus", ref_r->csr.mstatus, dut_state.csr.mstatus, ref_r->csr.mstatus ^ dut_state.csr.mstatus);
+        return false;
+    }
+    //-----------------------------------------------------------------------------------------
     return true;
 }
 static void checkregs(CPU_state *ref, vaddr_t pc, CPU *cpu)
@@ -144,8 +167,10 @@ void difftest_step(vaddr_t pc, vaddr_t npc, CPU *cpu)
     if (is_skip_ref)
     {
         // to skip the checking of an instruction, just copy the reg state to reference design
-        ref_difftest_regcpy(&cpu, DIFFTEST_TO_REF);
+        ref_difftest_regcpy(&dut_state, DIFFTEST_TO_REF);
         is_skip_ref = false;
+        // printf("skip the checking of an instruction at pc = " FMT_WORD "\n", *(uint32_t *)cpu->pc);
+
         return;
     }
     ref_difftest_exec(1);

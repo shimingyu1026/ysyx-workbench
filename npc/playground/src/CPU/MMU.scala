@@ -124,7 +124,7 @@ class MMU extends Module {
         printf("mmu state: sWaitReady\n")
       }
 
-      when(io.mmu_to_wbu.ready & io.mmu_to_wbu.valid) {
+      when(io.mmu_to_wbu.fire) {
         state := StateMMU.sIdle
       }
     }

@@ -9,6 +9,7 @@
 #include <generated/autoconf.h>
 #include <macro.h>
 #include "verilated.h"
+#include "Vtop___024root.h"
 #include "Vtop.h"
 
 #include <assert.h>
@@ -33,9 +34,15 @@ public:
     char logbuf[128];
     vaddr_t* regs;
     void *pc;
+
     vaddr_t lnpc;  // 当前周期pc
     vaddr_t snpc;  // 当前周期pc+4
     vaddr_t linst; // 当前周期执行的指令
+                   // csr
+    vaddr_t *macause;
+    vaddr_t *mepc;
+    vaddr_t *mstatus;
+    vaddr_t *mtvec;
     TOP *top;
     void *inst;
 };

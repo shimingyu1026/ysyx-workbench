@@ -41,7 +41,7 @@ class csrFile extends Module {
   }
 
   // printf("mcause: %x\n", mcause)
-  when(io.csr_ctrl_i === CSRCtrlEnum.ecall) {
+  when(io.csr_ctrl_i === CSRCtrlEnum.ecall & io.csr_wen_i) {
     mepc   := io.pc_i
     mcause := "hb".U
   }.otherwise {

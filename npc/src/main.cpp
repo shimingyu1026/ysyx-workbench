@@ -24,6 +24,10 @@ int main(int argc, char **argv)
     {
         cpu->regs = &cpu->top->io_regs_0;
     }
+    cpu->mepc = &cpu->top->rootp->top__DOT__core__DOT__idu__DOT__csrFile__DOT__mepc;
+    cpu->mstatus = &cpu->top->rootp->top__DOT__core__DOT__idu__DOT__csrFile__DOT__mstatus;
+    cpu->macause = &cpu->top->rootp->top__DOT__core__DOT__idu__DOT__csrFile__DOT__mcause;
+    cpu->mtvec = &cpu->top->rootp->top__DOT__core__DOT__idu__DOT__csrFile__DOT__mtvec;
     //------------------------------------------------------------------
 
     init_monitor(argc, argv, cpu);

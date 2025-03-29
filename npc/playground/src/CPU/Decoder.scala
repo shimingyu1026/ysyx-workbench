@@ -122,8 +122,8 @@ object CSRWen  extends DecodeField[InstructionPattern, Bool] {
   override def chiselType = Bool()
   override def genTable(i: InstructionPattern): BitPat = {
     val wen = i.inst.name match {
-      case "csrrw" | "csrrs" | "csrrc" | "csrrwi" | "csrrsi" | "csrrci" => true.B
-      case _                                                            => false.B
+      case "csrrw" | "csrrs" | "csrrc" | "csrrwi" | "csrrsi" | "csrrci" | "ecall" => true.B
+      case _                                                                      => false.B
     }
     BitPat(wen.litValue.U((wen.getWidth).W))
   }

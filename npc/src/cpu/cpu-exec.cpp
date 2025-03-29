@@ -29,6 +29,7 @@ static void trace_and_difftest(CPU *_this, vaddr_t dnpc)
     IFDEF(CONFIG_ITRACE, puts(_this->logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(_this->lnpc, dnpc, _this));
 }
+
 static void exec_once(CPU *cpu)
 {
     cpu->snpc = *(vaddr_t *)cpu->pc + 4;
@@ -38,11 +39,6 @@ static void exec_once(CPU *cpu)
     cpu->top->eval();
     cpu->top->clock = 1;
     cpu->top->eval();
-    if (traceDiff)
-    {
-        // printf("current pc: %x\n", cpu->lnpc);
-        // printf("current inst: %x\n", cpu->linst);
-    }
 #ifdef CONFIG_ITRACE
     if (traceDiff)
     {
@@ -73,8 +69,10 @@ static void execute(uint64_t n, CPU *cpu)
     for (; n > 0; n--)
     {
         exec_once(cpu);
+        // printf("mepc: %x\n", *(vaddr_t *)cpu->mepc);
         if (traceDiff)
         {
+
             trace_and_difftest(cpu, *(vaddr_t *)cpu->pc);
         }
         if (npcTrap)

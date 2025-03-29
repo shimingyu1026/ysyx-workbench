@@ -4,5 +4,9 @@
 #include <macro.h>
 #include <generated/autoconf.h>
 
-enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
+enum
+{
+    DIFFTEST_TO_DUT = 0,
+    DIFFTEST_TO_REF = 1
+};
 #endif

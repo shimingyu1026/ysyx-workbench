@@ -34,12 +34,12 @@ static void welcome()
 }
 void init_monitor(int argc, char *argv[], CPU *cpu)
 { //$(ARGS) $(IMG)
+    reset(cpu);
     parse_args(argc, argv);
     init_rand();
     init_log(log_file);
     init_mem();
     init_isa();
-    reset(cpu);
     long img_size = load_img();
     init_sdb();
     IFDEF(CONFIG_ITRACE, init_disasm());

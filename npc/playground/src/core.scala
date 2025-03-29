@@ -38,7 +38,7 @@ class core extends Module {
 
   idu.io.wbdata_i    := wbu.io.wbData_o
   idu.io.regWen_i    := wbu.io.regWen_o
-  idu.io.csr_wen_i   := wbu.io.regWen_o
+  idu.io.csr_wen_i   := wbu.io.csr_wen_o
   idu.io.csr_waddr_i := wbu.io.csr_waddr_o
   idu.io.csr_wdata_i := wbu.io.csr_wdata_o
 

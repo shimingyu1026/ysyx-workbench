@@ -78,7 +78,7 @@ class sram extends Module {
         s_wait_data_read,
         Mux(io.axi.aw.valid, s_wait_data_write, s_idle)
       ),
-      s_wait_data_read  -> Mux(delayRegs(1), s_wait_r_fire, s_wait_data_read),
+      s_wait_data_read  -> Mux(delayRegs(50), s_wait_r_fire, s_wait_data_read),
       s_wait_r_fire     -> Mux(io.axi.r.ready, s_idle, s_wait_r_fire),
       s_wait_data_write -> Mux(
         io.axi.w.ready,
