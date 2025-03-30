@@ -21,7 +21,11 @@
 #include <generated/autoconf.h>
 
 #define __EXPORT __attribute__((visibility("default")))
-enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
+enum
+{
+    DIFFTEST_TO_DUT = 0,
+    DIFFTEST_TO_REF = 1
+};
 
 #if defined(CONFIG_ISA_x86)
 # define DIFFTEST_REG_SIZE (sizeof(uint32_t) * 9) // GPRs + pc

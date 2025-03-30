@@ -44,17 +44,23 @@ __EXPORT void difftest_regcpy(void *dut, bool direction) {
       ref_r->gpr[i] = dut_r->gpr[i];
     }
     ref_r->pc = dut_r->pc;
-    /* printf("pc = %x\n", dut_r->pc); */
+    ref_r->csr.mstatus = dut_r->csr.mstatus;
+    ref_r->csr.mepc = dut_r->csr.mepc;
+    ref_r->csr.mtvec = dut_r->csr.mtvec;
+    ref_r->csr.mepc = dut_r->csr.mepc;
   }
   else
   {
     // REF_TO_DIFFTEST
-
     for (int i = 0; i < 32; i++)
     {
       dut_r->gpr[i] = ref_r->gpr[i];
     }
     dut_r->pc = ref_r->pc;
+    dut_r->csr.mstatus = ref_r->csr.mstatus;
+    dut_r->csr.mepc = ref_r->csr.mepc;
+    dut_r->csr.mtvec = ref_r->csr.mtvec;
+    dut_r->csr.mepc = ref_r->csr.mepc;
   }
 }
 
