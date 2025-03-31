@@ -26,27 +26,30 @@ class IFUIO extends Bundle {
   val wbFlag = Input(Bool())
 
   // axi master
-  val axi        = (new axi_lite)
+  val axi        = (new axi_full)
   val ifu_to_idu = Decoupled(new ifu_idu_io)
 }
 
 class IFU extends Module {
   val io = IO(new IFUIO)
 
-  val inst     = RegInit(0.U(32.W))
-  val PC       = RegInit("h80000000".U(32.W))
-  val pcPlus4  = PC + 4.U
+  val resetValue = "h20000000".U(32.W)
+  val inst       = RegInit(0.U(32.W))
+  val PC         = RegInit(resetValue)
+  val pcPlus4    = PC + 4.U
   // 状态机寄存器
-  val state    = RegInit(StateIFU.sIdle)
-  val stateAXI = RegInit(StateIFUAXI.sIdle)
+  val state      = RegInit(StateIFU.sIdle)
+  val stateAXI   = RegInit(StateIFUAXI.sIdle)
   switch(stateAXI) {
     is(StateIFUAXI.sIdle) {
       when(DEBUG.PRINTF) {
         printf("IFU AXI state: idle\n")
       }
+      val flag = RegInit(true.B)
 
-      when((state === StateIFU.sIdle & io.pcUpdate) | ((PC === "h80000000".U(32.W)))) {
+      when((state === StateIFU.sIdle & io.pcUpdate) | flag) {
         stateAXI := StateIFUAXI.sWaitAR
+        flag     := false.B
       }
     }
     is(StateIFUAXI.sWaitAR) {
@@ -54,7 +57,7 @@ class IFU extends Module {
         printf("IFU AXI state: wait ar\n")
       }
 
-      when(io.axi.ar.ready) {
+      when(io.axi.arready) {
         stateAXI := StateIFUAXI.sWaitR
       }
     }
@@ -63,7 +66,7 @@ class IFU extends Module {
         printf("IFU AXI state: wait r\n")
       }
 
-      when(io.axi.r.valid) {
+      when(io.axi.rvalid) {
         stateAXI := StateIFUAXI.sNothing
       }
     }
@@ -72,7 +75,7 @@ class IFU extends Module {
         printf("IFU AXI state: nothing\n")
       }
 
-      when(io.ifu_to_idu.valid & io.ifu_to_idu.ready) // 握手成功
+      when(io.ifu_to_idu.fire) // 握手成功
       {
         stateAXI := StateIFUAXI.sIdle
       }
@@ -83,8 +86,11 @@ class IFU extends Module {
     is(StateIFU.sIdle) {
       when(DEBUG.PRINTF) { printf("IFU state: idle\n") }
 
-      when(io.ifu_to_idu.valid) {
+      when(io.ifu_to_idu.valid & ~(io.ifu_to_idu.ready)) {
         state := StateIFU.sWaitReady
+      }.elsewhen(io.ifu_to_idu.fire) {
+        state := StateIFU.sIdle
+
       }
     }
     is(StateIFU.sWaitReady) {
@@ -92,7 +98,7 @@ class IFU extends Module {
         printf("IFU state: wait ready\n")
       }
 
-      when(io.ifu_to_idu.ready) {
+      when(io.ifu_to_idu.fire) {
         state := StateIFU.sIdle
       }
     }
@@ -121,6 +127,8 @@ class IFU extends Module {
   )
   when(DEBUG.PRINTF) {
     printf("pc next: %x\n", PCNext)
+    printf("inst: %x\n", inst)
+    printf("rdata: %x\n", io.axi.rdata)
   }
 
   when(io.pcUpdate) {
@@ -132,30 +140,39 @@ class IFU extends Module {
 //--------------------------------------------------------------------------------------
 //axi 信号
 //写通道关闭
-  io.axi.aw.addr  := 0.U
-  io.axi.aw.valid := false.B
+  io.axi.awaddr  := 0.U
+  io.axi.awvalid := false.B
+  io.axi.awid    := 1.U // ifu
+  io.axi.awlen   := 0.U
+  io.axi.awsize  := 0.U
+  io.axi.awburst := 0.U
 
-  io.axi.w.data  := 0.U
-  io.axi.w.strb  := 0.U
-  io.axi.w.valid := false.B
+  io.axi.wdata  := 0.U
+  io.axi.wstrb  := 0.U
+  io.axi.wvalid := false.B
+  io.axi.wlast  := false.B
 
-  io.axi.b.ready  := false.B
+  io.axi.bready := false.B
+
 //读通道
-  io.axi.ar.addr  := PC
-  io.axi.ar.valid := stateAXI === StateIFUAXI.sWaitAR
-
-  io.axi.r.ready      := stateAXI === StateIFUAXI.sWaitR // 可以是常1
+  io.axi.araddr       := PC
+  io.axi.arvalid      := stateAXI === StateIFUAXI.sWaitAR
+  io.axi.arid         := 1.U
+  io.axi.rready       := stateAXI === StateIFUAXI.sWaitR // 可以是常1
+  io.axi.arlen        := 0.U
+  io.axi.arsize       := "b10".U
+  io.axi.arburst      := "b00".U
 //--------------------------------------------------------------------------------------
   // axi 信号影响
-  // printf("IFU io.axi.r.data: %x\n", io.axi.r.data)
-  // printf("IFU io.axi.r.valid: %x\n", io.axi.r.valid)
-  // printf("IFU io.axi.r.ready: %x\n", io.axi.r.ready)
-  when(stateAXI === StateIFUAXI.sWaitR & io.axi.r.valid & io.axi.r.ready) {
-    inst := io.axi.r.data
+  // printf("IFU io.axi.rdata: %x\n", io.axi.rdata)
+  // printf("IFU io.axi.rvalid: %x\n", io.axi.rvalid)
+  // printf("IFU io.axi.rready: %x\n", io.axi.rready)
+  when(stateAXI === StateIFUAXI.sWaitR & io.axi.rvalid & io.axi.rready) {
+    inst := io.axi.rdata
   }.otherwise {
     inst := inst
   }
-  io.ifu_to_idu.valid := stateAXI === StateIFUAXI.sNothing | ((PC === "h80000000".U(32.W)))
+  io.ifu_to_idu.valid := stateAXI === StateIFUAXI.sNothing
 //--------------------------------------------------------------
 
   // 数据
@@ -163,7 +180,6 @@ class IFU extends Module {
   io.ifu_to_idu.bits.inst    := inst
   io.ifu_to_idu.bits.pcPlus4 := pcPlus4
   // ---------------------------------------------------------------
-  // printf("io.pcBranchJ_i: %x\n", io.pcBranchJ_i)
   io.inst_o                  := inst
 
   val traceDiff = Module(new traceDiff)

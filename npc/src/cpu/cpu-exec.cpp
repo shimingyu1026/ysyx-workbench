@@ -2,6 +2,7 @@
 #include <cpu/difftest.h>
 
 bool npcTrap = false;
+int axi_resp = 0;
 static uint64_t g_timer = 0; // unit: us
 bool traceDiff = false;
 extern "C" void call_trace_diff()
@@ -30,15 +31,19 @@ static void trace_and_difftest(CPU *_this, vaddr_t dnpc)
     IFDEF(CONFIG_DIFFTEST, difftest_step(_this->lnpc, dnpc, _this));
 }
 
-static void exec_once(CPU *cpu)
+static void exec_once(CPU *cpu, VerilatedVcdC *tfp, VerilatedContext *contextp)
 {
     cpu->snpc = *(vaddr_t *)cpu->pc + 4;
     cpu->lnpc = *(vaddr_t *)cpu->pc;
     cpu->linst = *(vaddr_t *)cpu->inst;
     cpu->top->clock = 0;
     cpu->top->eval();
+    tfp->dump(contextp->time()); // dump wave
+    contextp->timeInc(1);        // 仿真时间推进
     cpu->top->clock = 1;
     cpu->top->eval();
+    tfp->dump(contextp->time()); // dump wave
+    contextp->timeInc(1);        // 仿真时间推进
 #ifdef CONFIG_ITRACE
     if (traceDiff)
     {
@@ -64,11 +69,11 @@ static void exec_once(CPU *cpu)
     }
 #endif
 }
-static void execute(uint64_t n, CPU *cpu)
+static void execute(uint64_t n, CPU *cpu, VerilatedVcdC *tfp, VerilatedContext *contextp)
 {
     for (; n > 0; n--)
     {
-        exec_once(cpu);
+        exec_once(cpu, tfp, contextp);
         // printf("mepc: %x\n", *(vaddr_t *)cpu->mepc);
         if (traceDiff)
         {
@@ -91,7 +96,7 @@ static void statistic()
     // else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
 }
 
-void cpu_exec(uint64_t n, CPU *cpu)
+void cpu_exec(uint64_t n, CPU *cpu, VerilatedVcdC *tfp, VerilatedContext *contextp)
 {
     if (npcTrap)
     {
@@ -99,7 +104,7 @@ void cpu_exec(uint64_t n, CPU *cpu)
         return;
     }
     uint64_t timer_start = get_time();
-    execute(n, cpu);
+    execute(n, cpu, tfp, contextp);
     uint64_t timer_end = get_time();
     g_timer += timer_end - timer_start;
     // printf("timer_start: %ld, timer_end: %ld\n", timer_start, timer_end);

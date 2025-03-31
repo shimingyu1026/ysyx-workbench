@@ -23,8 +23,21 @@ static uint8_t *pmem = NULL;
 #else // CONFIG_PMEM_GARRAY
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 #endif
+static uint8_t mrom[0xFFFFF] PG_ALIGN = {};
+static uint8_t sram[0xFFFFFF] PG_ALIGN = {};
+uint8_t *guest_to_host(paddr_t paddr)
+{
+  if ((paddr >= CONFIG_MBASE) & (paddr <= CONFIG_MBASE + CONFIG_MSIZE))
+    return pmem + paddr - CONFIG_MBASE;
 
-uint8_t* guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
+  if ((paddr >= 0x20000000) & (paddr <= 0x20000fff))
+    return mrom + paddr - 0x20000000;
+
+  if ((paddr >= 0x0f000000) & (paddr <= 0x0fffffff))
+    return sram + paddr - 0x0f000000;
+
+  return pmem + paddr - CONFIG_MBASE;
+}
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - pmem + CONFIG_MBASE; }
 
 static word_t pmem_read(paddr_t addr, int len) {
@@ -58,7 +71,12 @@ word_t paddr_read(paddr_t addr, int len) {
 }
 
 void paddr_write(paddr_t addr, int len, word_t data) {
-  if (likely(in_pmem(addr))) { pmem_write(addr, len, data); return; }
+  if (likely(in_pmem(addr)))
+  {
+    pmem_write(addr, len, data);
+    printf("data write:%08x %08x\n", addr, data);
+    return;
+  }
   IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return);
   out_of_bound(addr);
 }

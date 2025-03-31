@@ -28,7 +28,7 @@ object BrSelEnum extends ChiselEnum {
 }
 
 object MemWenEnum extends ChiselEnum {
-  val wen, none = Value
+  val none, wen = Value
 }
 
 object LoadCtrlEnum  extends ChiselEnum {

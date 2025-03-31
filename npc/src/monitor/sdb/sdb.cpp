@@ -12,6 +12,7 @@
  *
  * See the Mulan PSL v2 for more details.
  ***************************************************************************************/
+#include <common.h>
 #include <isa.h>
 #include <cpu/cpu.h>
 #include <readline/readline.h>
@@ -22,6 +23,8 @@
 
 static int is_batch_mode = false;
 CPU *cmd_cpu;
+VerilatedVcdC *cmd_tfp;
+VerilatedContext *cmd_contextp;
 
 void init_regex();
 void init_wp_pool();
@@ -49,7 +52,7 @@ static char *rl_gets()
 
 static int cmd_c(char *args)
 {
-  cpu_exec(-1, cmd_cpu);
+  cpu_exec(-1, cmd_cpu, cmd_tfp, cmd_contextp);
   return 0;
 }
 
@@ -84,12 +87,12 @@ static int cmd_si(char *args)
   if (!args)
   {
     printf("excute one step by default\n");
-    cpu_exec(1, cmd_cpu);
+    cpu_exec(1, cmd_cpu, cmd_tfp, cmd_contextp);
     return 0;
   }
   n = atoi(args); // 将字符串 str 转换为 int 类型整数。
   printf("excute %d steps\n", n);
-  cpu_exec(n, cmd_cpu);
+  cpu_exec(n, cmd_cpu, cmd_tfp, cmd_contextp);
   return 0;
 }
 static int cmd_x(char *args)
@@ -172,9 +175,12 @@ void sdb_set_batch_mode()
   is_batch_mode = true;
 }
 
-void sdb_mainloop(CPU *cpu)
+void sdb_mainloop(CPU *cpu, VerilatedVcdC *tfp, VerilatedContext *contextp)
 {
   cmd_cpu = cpu;
+  cmd_contextp = contextp;
+  cmd_tfp = tfp;
+
   if (is_batch_mode)
   {
     cmd_c(NULL);

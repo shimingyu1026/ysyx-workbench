@@ -9,13 +9,14 @@
 #include <generated/autoconf.h>
 #include <macro.h>
 #include "verilated.h"
-#include "Vtop___024root.h"
-#include "Vtop.h"
+#include "VysyxSoCFull___024root.h"
+#include "VysyxSoCFull.h"
+#include "verilated_vcd_c.h"
 
 #include <assert.h>
 #include <stdlib.h>
 
-#define TOP Vtop
+#define TOP VysyxSoCFull
 
 typedef MUXDEF(CONFIG_ISA64, uint64_t, uint32_t) word_t;
 typedef MUXDEF(CONFIG_ISA64, int64_t, int32_t)  sword_t;

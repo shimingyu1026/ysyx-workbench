@@ -2,6 +2,7 @@
 #include <memory/paddr.h>
 
 static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
+static uint8_t sram[0xFFFFFF] PG_ALIGN = {};
 uint8_t *guest_to_host(paddr_t paddr) { return pmem + paddr - CONFIG_MBASE; }
 paddr_t host_to_guest(uint8_t *haddr) { return haddr - pmem + CONFIG_MBASE; }
 
@@ -45,4 +46,10 @@ void paddr_write(paddr_t addr, int len, word_t data)
     }
     //IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return);
     out_of_bound(addr);
+}
+
+word_t sram_read(paddr_t addr, int len)
+{
+    word_t ret = host_read(sram + addr - 0x0f000000, len);
+    return ret;
 }

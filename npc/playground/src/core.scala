@@ -5,8 +5,8 @@ import chisel3.util._
 
 class coreIO extends Bundle {
 
-  val axi_1  = new axi_lite()
-  val axi_2  = new axi_lite()
+  val axi_1  = new axi_full()
+  val axi_2  = new axi_full()
   val pc_o   = Output(UInt(32.W))
   val inst_o = Output(UInt(32.W))
 
@@ -51,5 +51,8 @@ class core extends Module {
 
   io.axi_1 <> ifu.io.axi
   io.axi_2 <> mmu.io.axi
+
+  dontTouch(io.regs)
+  dontTouch(io)
 
 }

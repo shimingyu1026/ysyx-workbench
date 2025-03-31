@@ -8,12 +8,12 @@ object StateMMU    extends ChiselEnum {
 }
 object StateMMUAXI extends ChiselEnum {
   val sIdle, sWaitAR, sWaitR, sWaitAW, sWaitW, sWaitB, sNothing = Value
+  //  000     001       010     011      100    101      110
 }
 class MMUIO        extends Bundle     {
   val exu_to_mmu = Flipped(Decoupled(new exu_to_mmu_io))
   val mmu_to_wbu = Decoupled(new mmu_to_wbu_io)
-  val axi        = new axi_lite()
-
+  val axi        = new axi_full()
 }
 
 class MMU extends Module {
@@ -47,7 +47,7 @@ class MMU extends Module {
         printf("mmu AXI state: sWaitAW\n")
       }
 
-      when(io.axi.aw.ready) {
+      when(io.axi.awready) {
         stateAXI := StateMMUAXI.sWaitW
       }
     }
@@ -57,7 +57,7 @@ class MMU extends Module {
         printf("mmu AXI state: sWaitW\n")
       }
 
-      when(io.axi.w.ready) {
+      when(io.axi.wready) {
         stateAXI := StateMMUAXI.sWaitB
       }
     }
@@ -67,7 +67,7 @@ class MMU extends Module {
 
         printf("mmu AXI state: sWaitB\n")
       }
-      when(io.axi.b.valid) {
+      when(io.axi.bvalid) {
         stateAXI := StateMMUAXI.sNothing
       }
     }
@@ -77,7 +77,7 @@ class MMU extends Module {
         printf("mmu AXI state: sWaitAR\n")
       }
 
-      when(io.axi.ar.ready) {
+      when(io.axi.arready) {
         stateAXI := StateMMUAXI.sWaitR
       }
     }
@@ -85,9 +85,10 @@ class MMU extends Module {
     is(StateMMUAXI.sWaitR) {
       when(DEBUG.PRINTF) {
         printf("mmu AXI state: sWaitR\n")
+
       }
 
-      when(io.axi.r.valid) {
+      when(io.axi.rvalid) {
         stateAXI := StateMMUAXI.sNothing
       }
     }
@@ -129,19 +130,21 @@ class MMU extends Module {
       }
     }
   }
-
+  // printf("io.axi.rready: %d\nio.axi.rvalid: %d\n", io.axi.rready, io.axi.rvalid)
   val raddr     = io.exu_to_mmu.bits.aluResult
   val waddr     = io.exu_to_mmu.bits.aluResult
   val rs2_data  = io.exu_to_mmu.bits.rs2_data
   val axi_rdata = RegInit(0.U(32.W))
   val wdata     = Wire(UInt(32.W))
   val mask      = Wire(UInt(4.W))
-  mask  := 0.U
-  wdata := 0.U
+  val awsize    = Wire(UInt(3.W))
+  mask   := 0.U
+  wdata  := 0.U
+  awsize := 0.U
   switch(io.exu_to_mmu.bits.storeCtrl) {
 
     is(StoreCtrlEnum.sb) {
-      wdata := MuxLookup(waddr(1, 0), 0.U)(
+      wdata  := MuxLookup(waddr(1, 0), 0.U)(
         List(
           0.U -> Cat(Fill(24, 0.U), rs2_data(7, 0)),
           1.U -> Cat(Fill(16, 0.U), rs2_data(7, 0), Fill(8, 0.U)),
@@ -149,7 +152,7 @@ class MMU extends Module {
           3.U -> Cat(rs2_data(7, 0), Fill(24, 0.U))
         )
       )
-      mask  := MuxLookup(waddr(1, 0), 0.U)(
+      mask   := MuxLookup(waddr(1, 0), 0.U)(
         List(
           0.U -> "b0001".U,
           1.U -> "b0010".U,
@@ -157,35 +160,39 @@ class MMU extends Module {
           3.U -> "b1000".U
         )
       )
+      awsize := "b000".U
     }
     is(StoreCtrlEnum.sh) {
-      wdata := MuxLookup(waddr(1, 0), 0.U)(
+      wdata  := MuxLookup(waddr(1, 0), 0.U)(
         List(
           0.U -> Cat(Fill(16, 0.U), rs2_data(15, 0)),
           1.U -> Cat(Fill(8, 0.U), rs2_data(15, 0), Fill(8, 0.U)),
           2.U -> Cat(rs2_data(15, 0), Fill(16, 0.U))
         )
       )
-      mask  := MuxLookup(waddr(1, 0), 0.U)(
+      mask   := MuxLookup(waddr(1, 0), 0.U)(
         List(
           0.U -> "b0011".U,
           1.U -> "b0110".U,
           2.U -> "b1100".U
         )
       )
+      awsize := "b001".U
     }
     is(StoreCtrlEnum.sw) {
-      wdata := rs2_data
-      mask  := "b1111".U
+      wdata  := rs2_data
+      mask   := "b1111".U
+      awsize := "b010".U
     }
   }
 
-  val rdata = Wire(UInt(32.W))
-  rdata := 0.U
-
+  val rdata  = Wire(UInt(32.W))
+  val arsize = Wire(UInt(3.W))
+  rdata          := 0.U
+  arsize         := 0.U
   switch(io.exu_to_mmu.bits.loadCtrl) {
     is(LoadCtrlEnum.lb) {
-      rdata := MuxLookup(raddr(1, 0), 0.U)(
+      rdata  := MuxLookup(raddr(1, 0), 0.U)(
         List(
           0.U -> Cat(Fill(24, axi_rdata(7)), axi_rdata(7, 0)),
           1.U -> Cat(Fill(24, axi_rdata(15)), axi_rdata(15, 8)),
@@ -193,10 +200,11 @@ class MMU extends Module {
           3.U -> Cat(Fill(24, axi_rdata(31)), axi_rdata(31, 24))
         )
       )
+      arsize := "b000".U
     }
 
     is(LoadCtrlEnum.lbu) {
-      rdata := MuxLookup(raddr(1, 0), 0.U)(
+      rdata  := MuxLookup(raddr(1, 0), 0.U)(
         List(
           0.U -> Cat(Fill(24, 0.U), axi_rdata(7, 0)),
           1.U -> Cat(Fill(24, 0.U), axi_rdata(15, 8)),
@@ -204,52 +212,65 @@ class MMU extends Module {
           3.U -> Cat(Fill(24, 0.U), axi_rdata(31, 24))
         )
       )
+      arsize := "b000".U
     }
 
     is(LoadCtrlEnum.lhu) {
-      rdata := MuxLookup(raddr(1, 0), 0.U)(
+      rdata  := MuxLookup(raddr(1, 0), 0.U)(
         List(
           0.U -> Cat(Fill(16, 0.U), axi_rdata(15, 0)),
           1.U -> Cat(Fill(16, 0.U), axi_rdata(23, 8)),
           2.U -> Cat(Fill(16, 0.U), axi_rdata(31, 16))
         )
       )
+      arsize := "b001".U
     }
 
     is(LoadCtrlEnum.lh) {
-      rdata := MuxLookup(raddr(1, 0), 0.U)(
+      rdata  := MuxLookup(raddr(1, 0), 0.U)(
         List(
           0.U -> Cat(Fill(16, axi_rdata(15)), axi_rdata(15, 0)),
           1.U -> Cat(Fill(16, axi_rdata(23)), axi_rdata(23, 8)),
           2.U -> Cat(Fill(16, axi_rdata(31)), axi_rdata(31, 16))
         )
       )
+      arsize := "b001".U
     }
 
     is(LoadCtrlEnum.lw) {
-      rdata := axi_rdata
+      rdata  := axi_rdata
+      arsize := "b010".U
     }
   }
 //--------------------------------------------------------------------------
 // axi 信号
-  io.axi.ar.addr  := raddr
-  io.axi.ar.valid := stateAXI === StateMMUAXI.sWaitAR
+  io.axi.araddr  := raddr
+  io.axi.arvalid := stateAXI === StateMMUAXI.sWaitAR
+  io.axi.arid    := 3.U
+  io.axi.arlen   := 0.U
+  io.axi.arburst := 0.U
+  io.axi.arsize  := arsize
 
-  io.axi.r.ready := stateAXI === StateMMUAXI.sWaitR
+  io.axi.rready := stateAXI === StateMMUAXI.sWaitR
 
-  io.axi.aw.addr  := waddr
-  io.axi.aw.valid := stateAXI === StateMMUAXI.sWaitAW
+  io.axi.awaddr  := waddr
+  io.axi.awvalid := stateAXI === StateMMUAXI.sWaitAW
+  io.axi.awid    := 4.U
+  io.axi.awlen   := 0.U
+  io.axi.awburst := 0.U
+  io.axi.awsize  := awsize
 
-  io.axi.w.data  := wdata // TODO
-  io.axi.w.strb  := mask  // TODO
-  io.axi.w.valid := stateAXI === StateMMUAXI.sWaitW
+  io.axi.wdata  := wdata // TODO
+  io.axi.wstrb  := mask  // TODO
+  io.axi.wvalid := stateAXI === StateMMUAXI.sWaitW
+  io.axi.wlast  := 1.U
 
-  io.axi.b.ready               := stateAXI === StateMMUAXI.sWaitB
+  io.axi.bready                := stateAXI === StateMMUAXI.sWaitB
 //------------------------------------------------------------------------------------
 // axi 影响的信号
   io.mmu_to_wbu.valid          := stateAXI === StateMMUAXI.sNothing
-  when(stateAXI === StateMMUAXI.sWaitR & io.axi.r.valid & io.axi.r.ready) {
-    axi_rdata := io.axi.r.data
+  when(stateAXI === StateMMUAXI.sWaitR & io.axi.rvalid & io.axi.rready) {
+    axi_rdata := io.axi.rdata
   }.otherwise {
     axi_rdata := axi_rdata
   }
@@ -267,5 +288,5 @@ class MMU extends Module {
   io.mmu_to_wbu.bits.csr_rdata := io.exu_to_mmu.bits.csr_rdata
 
 //-----------------------------------------------------------------------------------
-
+  dontTouch(io.axi)
 }

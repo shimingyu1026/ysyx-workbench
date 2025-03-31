@@ -18,6 +18,8 @@ SRCS-BLACKLIST-y += $(SRCS-BLACKLIST) $(shell find -L $(DIRS-BLACKLIST-y) -name 
 SRCS-y += $(shell find -L $(DIRS-y) -name "*.cpp" -o -name "*.c" -o -name "*.cc")
 SRCS = $(filter-out $(SRCS-BLACKLIST-y),$(SRCS-y))
 VSRCS = $(shell find -L $(VERILOG_DIR) -name "*.sv")
+VSRCS += $(shell find ../ysyxSoC/perip -name "*.sv" -o -name "*.v")
+VSRCS += $(shell find ../ysyxSoC/build -name "*.v" -o -name "*.sv")
 
 # Extract compiler and options from menuconfig
 VERILATOR = verilator
@@ -40,6 +42,8 @@ include $(NPC_HOME)/scripts/native.mk
 
 PRJ = playground
 
+
+
 verilog:
 	$(call git_commit, "generate verilog")
 	mill -i __.reformat
@@ -53,7 +57,7 @@ sim:
 		-CFLAGS "$(CFLAGS)" \
 		-LDFLAGS "$(LDFLAGS)" \
 		$(VSRCS) $(SRCS) > build/verilator_log.txt
-	$(BINARY) $(ARGS) -b $(IMG)
+	$(BINARY) $(ARGS) $(IMG)
 
 run: 
 	@$(BINARY) $(ARGS) $(IMG)

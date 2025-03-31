@@ -3,37 +3,48 @@ package myCPU
 import chisel3._
 import chisel3.util._
 
-class top extends Module {
+class ysyx_24070001 extends Module {
   val io = IO(new Bundle {
-    val npcTrap = Output(Bool())
-    val inst_o  = Output(UInt(32.W))
-    val pc_o    = Output(UInt(32.W))
+    val master    = new axi_full()
+    val slave     = Flipped(new axi_full)
+    val interrupt = Input(Bool())
+
+    // val inst_o  = Output(UInt(32.W))
+    // val pc_o    = Output(UInt(32.W))
 
     // for verilator
-    val regs = Output(Vec(32, UInt(32.W)))
+    // val regs = Output(Vec(32, UInt(32.W)))
   })
 
   val core    = Module(new core)
   val trap    = Module(new trap)
-  // val instrSRAM = Module(new sram)
-  // val dataSRAM  = Module(new sram)
-  val sram    = Module(new sram)
   val arbiter = Module(new Arb)
 
-  // instrSRAM.io.axi <> core.io.axi_1
-  // dataSRAM.io.axi <> core.io.axi_2
   core.io.axi_1 <> arbiter.io.axi_in_1
   core.io.axi_2 <> arbiter.io.axi_in_2
-  sram.io.axi <> arbiter.io.axi_out
+  io.master <> arbiter.io.axi_out
 
-  io.npcTrap := core.io.npcTrap
-  io.inst_o  := core.io.inst_o
-  io.pc_o    := core.io.pc_o
+  // io.npcTrap := core.io.npcTrap
+  // io.inst_o  := core.io.inst_o
+  // io.pc_o    := core.io.pc_o
 
-  io.regs := core.io.regs
+  // io.regs := core.io.regs
 
   trap.io.npcTrap := core.io.npcTrap
   trap.io.clock   := clock
+
+//slave
+  io.slave.awready := false.B
+  io.slave.wready  := false.B
+  io.slave.bvalid  := false.B
+  io.slave.bresp   := 0.U
+  io.slave.bid     := 0.U
+  io.slave.arready := false.B
+  io.slave.rvalid  := false.B
+  io.slave.rresp   := 0.U
+  io.slave.rdata   := 0.U
+  io.slave.rlast   := false.B
+  io.slave.rid     := 0.U
 
 }
 
