@@ -57,7 +57,7 @@ sim:
 		-CFLAGS "$(CFLAGS)" \
 		-LDFLAGS "$(LDFLAGS)" \
 		$(VSRCS) $(SRCS) > build/verilator_log.txt
-	$(BINARY) $(ARGS) $(IMG)
+	$(BINARY) $(ARGS) -b $(IMG)
 
 run: 
 	@$(BINARY) $(ARGS) $(IMG)

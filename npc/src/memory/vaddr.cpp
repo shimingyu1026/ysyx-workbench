@@ -59,13 +59,6 @@ extern "C" word_t mem_read(vaddr_t addr, int len)
 
 extern "C" void mrom_read(int32_t addr, int32_t *data)
 {
-    // printf("\nmrom read: %08x at addr %08x\n", vaddr_read(addr, 4), addr);
-
-    *data = vaddr_read(addr, 4);
-}
-extern "C" void flash_read(int32_t addr, int32_t *data)
-{
-    printf("\nsram read: %08x at addr %08x\n", sram_read(addr, 4), addr);
-
-    *data = sram_read(addr, 4);
+    printf("\nmrom read: %08x at addr %08x\n", vaddr_read(addr, 4), addr);
+    *data = vaddr_read(addr & ~0x3u, 4);
 }

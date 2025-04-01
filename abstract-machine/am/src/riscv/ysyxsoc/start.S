@@ -5,4 +5,42 @@
 _start:
   mv s0, zero
   la sp, _stack_pointer
+
+  # 1. 复制 .data 段内容（如果 .data 段有内容）
+  la a0, _data_lma        # a0 = _data_lma 地址
+  la a1, _data_start      # a1 = _data_start 地址
+  la a2, _bss_start        # a2 = _data_end 地址
+
+  # 如果 _data_start 等于 _data_end，说明 .data 段为空，跳过复制
+  beq a1, a2, skip_copy_data
+
+copy_data:
+  lW   t0, 0(a0)          # 从 _data_lma 地址（a0）加载一个字节到 t0
+  sw   t0, 0(a1)          # 将字节存储到 _data_start 地址（a1）
+  addi a0, a0, 4          # _data_lma 地址递增 1（下一字节）
+  addi a1, a1, 4          # _data_start 地址递增 1（下一字节）
+  bne  a1, a2, copy_data  # 如果 a1 没有到达 _data_end，继续复制
+
+skip_copy_data:
+  # 2. 清零 .bss 段（如果 .bss 段有内容）
+  la   a0, _bss_start     # a0 = _bss_start 地址
+  la   a2, _bss_end       # a2 = _bss_end 地址
+
+# 如果 _bss_start 等于 _bss_end，说明 .bss 段为空，跳过清零
+  beq a0, a2, skip_clear_bss
+  li   t0, 0              # t0 = 0，用于清零数据
+
+clear_bss:
+  sw   t0, 0(a0)          # 将 0 存储到 _bss_start 地址（a0）
+  addi a0, a0, 4          # _bss_start 地址递增 1（下一字节）
+  bne  a0, a2, clear_bss  # 如果 a0 没有到达 _bss_end，继续清零
+
+skip_clear_bss:
+
+done:
+  addi a0, x0, 0
+  addi a1, x0, 0
+  addi a2, x0, 0
+  addi t0, x0, 0
+
   call _trm_init

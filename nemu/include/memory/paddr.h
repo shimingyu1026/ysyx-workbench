@@ -31,7 +31,8 @@ static inline bool in_pmem(paddr_t addr) {
   bool f1 = addr - CONFIG_MBASE < CONFIG_MSIZE;
   bool f2 = (addr >= 0x20000000) & (addr <= 0x20000fff);
   bool f3 = (addr >= 0x0f000000) & (addr <= 0x0fffffff);
-  return f1 | f2 | f3;
+  bool f4 = (addr >= 0x30000000) & (addr <= 0x3fffffff);
+  return f1 | f2 | f3 | f4;
 }
 
 word_t paddr_read(paddr_t addr, int len);

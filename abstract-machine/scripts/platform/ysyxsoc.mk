@@ -10,9 +10,7 @@ AM_SRCS := riscv/ysyxsoc/start.S \
 
 CFLAGS    += -fdata-sections -ffunction-sections
 LDSCRIPTS += $(AM_HOME)/scripts/linker_ysyxsoc.ld
-LDFLAGS   += --defsym=_pmem_start=0x80000000 --defsym=_entry_offset=0x0 \
-             --defsym=_mrom_start=0x20000000 --defsym=_sram_start=0x0f000000 \
-             --defsym=_flash_start=0x30000000
+LDFLAGS   += 
 LDFLAGS   += --gc-sections -e _start
 
 MAINARGS_MAX_LEN = 64
@@ -25,8 +23,9 @@ insert-arg: image
 
 image: image-dep
 	@$(OBJDUMP) -d $(IMAGE).elf > $(IMAGE).txt
+#@$(OBJDUMP) -h $(IMAGE).elf
 	@echo + OBJCOPY "->" $(IMAGE_REL).bin
-	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary -j .text -j .rodata -j .data -j .bss $(IMAGE).elf $(IMAGE).bin
+	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
 
 run: insert-arg
 	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) sim IMG=$(IMAGE).bin

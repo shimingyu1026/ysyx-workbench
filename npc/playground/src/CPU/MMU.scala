@@ -144,6 +144,7 @@ class MMU extends Module {
   switch(io.exu_to_mmu.bits.storeCtrl) {
 
     is(StoreCtrlEnum.sb) {
+
       wdata  := MuxLookup(waddr(1, 0), 0.U)(
         List(
           0.U -> Cat(Fill(24, 0.U), rs2_data(7, 0)),
@@ -192,14 +193,15 @@ class MMU extends Module {
   arsize         := 0.U
   switch(io.exu_to_mmu.bits.loadCtrl) {
     is(LoadCtrlEnum.lb) {
-      rdata  := MuxLookup(raddr(1, 0), 0.U)(
-        List(
-          0.U -> Cat(Fill(24, axi_rdata(7)), axi_rdata(7, 0)),
-          1.U -> Cat(Fill(24, axi_rdata(15)), axi_rdata(15, 8)),
-          2.U -> Cat(Fill(24, axi_rdata(23)), axi_rdata(23, 16)),
-          3.U -> Cat(Fill(24, axi_rdata(31)), axi_rdata(31, 24))
+      rdata  :=
+        MuxLookup(raddr(1, 0), 0.U)(
+          List(
+            0.U -> Cat(Fill(24, axi_rdata(7)), axi_rdata(7, 0)),
+            1.U -> Cat(Fill(24, axi_rdata(15)), axi_rdata(15, 8)),
+            2.U -> Cat(Fill(24, axi_rdata(23)), axi_rdata(23, 16)),
+            3.U -> Cat(Fill(24, axi_rdata(31)), axi_rdata(31, 24))
+          )
         )
-      )
       arsize := "b000".U
     }
 
@@ -216,24 +218,26 @@ class MMU extends Module {
     }
 
     is(LoadCtrlEnum.lhu) {
-      rdata  := MuxLookup(raddr(1, 0), 0.U)(
-        List(
-          0.U -> Cat(Fill(16, 0.U), axi_rdata(15, 0)),
-          1.U -> Cat(Fill(16, 0.U), axi_rdata(23, 8)),
-          2.U -> Cat(Fill(16, 0.U), axi_rdata(31, 16))
+      rdata  :=
+        MuxLookup(raddr(1, 0), 0.U)(
+          List(
+            0.U -> Cat(Fill(16, 0.U), axi_rdata(15, 0)),
+            1.U -> Cat(Fill(16, 0.U), axi_rdata(23, 8)),
+            2.U -> Cat(Fill(16, 0.U), axi_rdata(31, 16))
+          )
         )
-      )
       arsize := "b001".U
     }
 
     is(LoadCtrlEnum.lh) {
-      rdata  := MuxLookup(raddr(1, 0), 0.U)(
-        List(
-          0.U -> Cat(Fill(16, axi_rdata(15)), axi_rdata(15, 0)),
-          1.U -> Cat(Fill(16, axi_rdata(23)), axi_rdata(23, 8)),
-          2.U -> Cat(Fill(16, axi_rdata(31)), axi_rdata(31, 16))
+      rdata  :=
+        MuxLookup(raddr(1, 0), 0.U)(
+          List(
+            0.U -> Cat(Fill(16, axi_rdata(15)), axi_rdata(15, 0)),
+            1.U -> Cat(Fill(16, axi_rdata(23)), axi_rdata(23, 8)),
+            2.U -> Cat(Fill(16, axi_rdata(31)), axi_rdata(31, 16))
+          )
         )
-      )
       arsize := "b001".U
     }
 

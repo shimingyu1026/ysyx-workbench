@@ -20,10 +20,13 @@ class csrFileIO extends Bundle {
 class csrFile extends Module {
   val io = IO(new csrFileIO)
 
-  val mepc    = RegInit(0.U(32.W))
-  val mtvec   = RegInit(0.U(32.W))
-  val mcause  = RegInit(0.U(32.W))
-  val mstatus = RegInit("h1800".U(32.W))
+  val mepc      = RegInit(0.U(32.W))
+  val mtvec     = RegInit(0.U(32.W))
+  val mcause    = RegInit(0.U(32.W))
+  val mstatus   = RegInit("h1800".U(32.W))
+  val mvendorid = RegInit("h79737978".U(32.W))
+  val marchid   = RegInit("h16f4771".U(32.W))
+
   when(io.csr_ctrl_i === CSRCtrlEnum.mret) {
     io.csr_rdata_o := mepc
   }.elsewhen(io.csr_ctrl_i === CSRCtrlEnum.ecall) {
@@ -34,7 +37,9 @@ class csrFile extends Module {
         "h341".U -> mepc,
         "h305".U -> mtvec,
         "h342".U -> mcause,
-        "h300".U -> mstatus
+        "h300".U -> mstatus,
+        "hf11".U -> mvendorid,
+        "hf12".U -> marchid
       )
     )
 

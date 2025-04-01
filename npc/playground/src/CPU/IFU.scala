@@ -33,7 +33,7 @@ class IFUIO extends Bundle {
 class IFU extends Module {
   val io = IO(new IFUIO)
 
-  val resetValue = "h20000000".U(32.W)
+  val resetValue = "h30000000".U(32.W)
   val inst       = RegInit(0.U(32.W))
   val PC         = RegInit(resetValue)
   val pcPlus4    = PC + 4.U

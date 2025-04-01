@@ -25,6 +25,7 @@ static uint8_t pmem[CONFIG_MSIZE] PG_ALIGN = {};
 #endif
 static uint8_t mrom[0xFFFFF] PG_ALIGN = {};
 static uint8_t sram[0xFFFFFF] PG_ALIGN = {};
+static uint8_t flash[0xFFFFFF] PG_ALIGN = {};
 uint8_t *guest_to_host(paddr_t paddr)
 {
   if ((paddr >= CONFIG_MBASE) & (paddr <= CONFIG_MBASE + CONFIG_MSIZE))
@@ -34,7 +35,15 @@ uint8_t *guest_to_host(paddr_t paddr)
     return mrom + paddr - 0x20000000;
 
   if ((paddr >= 0x0f000000) & (paddr <= 0x0fffffff))
+  {
+    // printf("addr: %x\n", paddr);
     return sram + paddr - 0x0f000000;
+  }
+  if ((paddr >= 0x30000000) & (paddr <= 0x3fffffff))
+  {
+    // printf("addr: %x\n", paddr);
+    return flash + paddr - 0x30000000;
+  }
 
   return pmem + paddr - CONFIG_MBASE;
 }
@@ -64,7 +73,11 @@ void init_mem() {
 }
 
 word_t paddr_read(paddr_t addr, int len) {
-  if (likely(in_pmem(addr))) return pmem_read(addr, len);
+  if (likely(in_pmem(addr)))
+  {
+    // printf("data read:%08x %08x\n", addr, pmem_read(addr, len));
+    return pmem_read(addr, len);
+  }
   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
   out_of_bound(addr);
   return 0;
@@ -74,7 +87,7 @@ void paddr_write(paddr_t addr, int len, word_t data) {
   if (likely(in_pmem(addr)))
   {
     pmem_write(addr, len, data);
-    printf("data write:%08x %08x\n", addr, data);
+    // printf("data write:%08x %08x len: %d\n", addr, data, len);
     return;
   }
   IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return);
