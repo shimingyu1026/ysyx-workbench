@@ -11,7 +11,7 @@
 #include "verilated.h"
 #include "VysyxSoCFull___024root.h"
 #include "VysyxSoCFull.h"
-#include "verilated_vcd_c.h"
+#include "verilated_fst_c.h"
 
 #include <assert.h>
 #include <stdlib.h>

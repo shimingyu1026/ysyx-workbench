@@ -15,11 +15,11 @@ INCLUDES = $(addprefix -I, $(INC_PATH))
 CFLAGS  := -MMD \
 			$(INCLUDES) $(CFLAGS) \
 			-DTOP_NAME=V$(TOPNAME) \
-			-Wall -Werror
+			-Wall -Werror -Wno-maybe-uninitialized
 			
 CXXFLAGS := $(CXXFLAGS)
 LDFLAGS := $(LDFLAGS) -lreadline -ldl -pie
-VERILATOR_CFLAGS += --cc --trace \
+VERILATOR_CFLAGS += --cc --trace-fst --trace-threads 2\
 					--x-assign fast \
 					--x-initial fast \
 					--noassert \

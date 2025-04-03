@@ -31,7 +31,7 @@ static void trace_and_difftest(CPU *_this, vaddr_t dnpc)
     IFDEF(CONFIG_DIFFTEST, difftest_step(_this->lnpc, dnpc, _this));
 }
 
-static void exec_once(CPU *cpu, VerilatedVcdC *tfp, VerilatedContext *contextp)
+static void exec_once(CPU *cpu, VerilatedFstC *tfp, VerilatedContext *contextp)
 {
     cpu->snpc = *(vaddr_t *)cpu->pc + 4;
     cpu->lnpc = *(vaddr_t *)cpu->pc;
@@ -69,7 +69,7 @@ static void exec_once(CPU *cpu, VerilatedVcdC *tfp, VerilatedContext *contextp)
     }
 #endif
 }
-static void execute(uint64_t n, CPU *cpu, VerilatedVcdC *tfp, VerilatedContext *contextp)
+static void execute(uint64_t n, CPU *cpu, VerilatedFstC *tfp, VerilatedContext *contextp)
 {
     for (; n > 0; n--)
     {
@@ -96,7 +96,7 @@ static void statistic()
     // else Log("Finish running in less than 1 us and can not calculate the simulation frequency");
 }
 
-void cpu_exec(uint64_t n, CPU *cpu, VerilatedVcdC *tfp, VerilatedContext *contextp)
+void cpu_exec(uint64_t n, CPU *cpu, VerilatedFstC *tfp, VerilatedContext *contextp)
 {
     if (npcTrap)
     {

@@ -1,6 +1,6 @@
 #include <common.h>
 void init_monitor(int, char *[], CPU *cpu);
-void sdb_mainloop(CPU *cpu, VerilatedVcdC *tfp, VerilatedContext *contextp);
+void sdb_mainloop(CPU *cpu, VerilatedFstC *tfp, VerilatedContext *contextp);
 word_t vaddr_read(vaddr_t addr, int len);
 void reset(CPU *cpu);
 
@@ -20,10 +20,10 @@ int main(int argc, char **argv)
     contextp->commandArgs(argc, argv);
     TOP *top = new TOP{contextp};
 
-    VerilatedVcdC *tfp = new VerilatedVcdC;
+    VerilatedFstC *tfp = new VerilatedFstC;
     contextp->traceEverOn(true); // Trace enabled
     top->trace(tfp, 99);         // Trace signals
-    tfp->open("waveform.vcd");   // Output FST file
+    tfp->open("waveform.fst");   // Output FST file
 
     //---------------------------------------------------------
     CPU *cpu = new CPU();

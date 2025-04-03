@@ -46,7 +46,7 @@ void _printInfo();
 void _trm_init()
 {
   uart_set();
-  _printInfo();
+  //_printInfo();
   int ret = main(mainargs);
   halt(ret);
 }

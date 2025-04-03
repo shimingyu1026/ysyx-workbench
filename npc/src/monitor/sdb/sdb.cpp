@@ -23,7 +23,7 @@
 
 static int is_batch_mode = false;
 CPU *cmd_cpu;
-VerilatedVcdC *cmd_tfp;
+VerilatedFstC *cmd_tfp;
 VerilatedContext *cmd_contextp;
 
 void init_regex();
@@ -175,7 +175,7 @@ void sdb_set_batch_mode()
   is_batch_mode = true;
 }
 
-void sdb_mainloop(CPU *cpu, VerilatedVcdC *tfp, VerilatedContext *contextp)
+void sdb_mainloop(CPU *cpu, VerilatedFstC *tfp, VerilatedContext *contextp)
 {
   cmd_cpu = cpu;
   cmd_contextp = contextp;
