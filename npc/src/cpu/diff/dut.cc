@@ -27,13 +27,11 @@ void (*ref_difftest_exec)(uint64_t n) = NULL;
 // 触发中断。
 void (*ref_difftest_raise_intr)(uint64_t NO) = NULL;
 
-#ifdef CONFIG_DIFFTEST
-
 CPU_state dut_state;
 static bool is_skip_ref = false; // 是否跳过参考模拟器的检查
 static int skip_dut_nr_inst = 0; // DUT需要跳过的指令数
 void cpu_copy(const CPU *cpu, CPU_state *state);
-void difftest_skip_ref()
+extern "C" void difftest_skip_ref()
 {
     is_skip_ref = true;
     // If such an instruction is one of the instruction packing in QEMU
@@ -45,7 +43,7 @@ void difftest_skip_ref()
     // situation is infrequent.
     skip_dut_nr_inst = 0;
 }
-
+#ifdef CONFIG_DIFFTEST
 void difftest_skip_dut(int nr_ref, int nr_dut)
 {
     skip_dut_nr_inst += nr_dut;
@@ -173,6 +171,7 @@ void difftest_step(vaddr_t pc, vaddr_t npc, CPU *cpu)
 
         return;
     }
+    // printf("diff\n");
     ref_difftest_exec(1);
     ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
 

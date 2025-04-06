@@ -42,7 +42,6 @@ class csrFile extends Module {
         "hf12".U -> marchid
       )
     )
-
   }
 
   // printf("mcause: %x\n", mcause)

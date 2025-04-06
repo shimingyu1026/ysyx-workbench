@@ -1,11 +1,8 @@
-.section entry, "ax"
-.globl _start
-.type _start, @function
+.section bootloader, "ax"
+.globl _ssbl
+.type _ssbl, @function
 
-_start:
-  mv s0, zero
-  la sp, _stack_pointer
-
+_ssbl:
   # 复制 .text 段内容（如果 .text 段有内容）
   la a0, _text_lma        # a0 = _text_lma 地址
   la a1, _text_start      # a1 = _text_start 地址

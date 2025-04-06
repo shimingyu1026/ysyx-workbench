@@ -1,5 +1,5 @@
 ENTRY(_start)
-PHDRS { bootloader PT_LOAD;text PT_LOAD; data PT_LOAD; }
+PHDRS { fsbl PT_LOAD; ssbl PT_LOAD; text PT_LOAD; rodata PT_LOAD;data PT_LOAD; bss PT_LOAD;}
 
 MEMORY {
   mrom : ORIGIN = 0x20000000,  LENGTH = 4K
@@ -10,34 +10,39 @@ MEMORY {
 
 SECTIONS {
     . = ORIGIN(flash);
-    .bootloader : {
+
+    .fsbl : {
       *(entry)
-    } >flash AT> flash : bootloader
+    } >flash AT> flash : fsbl
+
+    .ssbl : {
+      _ssbl_start = .;
+      *(bootloader)
+      _ssbl_end = .;
+    } >psram AT> flash : ssbl
+    _ssbl_lma = LOADADDR(.ssbl);
 
     .text : {
       _text_start = .;
       *(.text*)
       _text_end = .;
-    }> sram AT> flash : text
+    }> psram AT> flash : text
     _text_lma = LOADADDR(.text);
-
-  etext = .;
-  _etext = .;
 
   .rodata : {
     _rodata_start = .;
     *(.rodata*)
     *(.srodata*)
     _rodata_end = .;
-  }> sram AT> flash
+  }> psram AT> flash : rodata
   _rodata_lma = LOADADDR(.rodata);
 
   .data :{
     _data_start = .;
-    *(.data)
+    *(.data.*)
     *(.sdata*)
     _data_end = .;
-  }> sram AT> flash : data
+  }> psram AT> flash : data
   _data_lma = LOADADDR(.data);    /* LMA: flash中的地址 */
 
   .bss :{
@@ -46,17 +51,16 @@ SECTIONS {
     *(.sbss*)
     *(.scommon)
     _bss_end = .;
-  }> sram AT> flash
-
-  _stack_top = ALIGN(0x10); 
-  . = _stack_top + 0x800;
-  _stack_pointer = .;
+  }> psram AT> flash : bss
 
 
   _heap_start = ALIGN(0x10);
-  _heap_end = ORIGIN(sram) + LENGTH(sram) - 0x10;
+  _heap_end = ORIGIN(psram) + LENGTH(psram) - 0x100;
 
-  ASSERT(_heap_end <= ORIGIN(sram) + LENGTH(sram), "SRAM overflow!")
-  ASSERT(_heap_start <= _heap_end, "Invalid heap range!")
-  ASSERT(SIZEOF(.text) + SIZEOF(.rodata) + SIZEOF(.data)<= LENGTH(flash), "FLASH overflow!")
+  . = ORIGIN(sram);
+  _stack_top = ALIGN(0x10); 
+  . = ORIGIN(sram) + LENGTH(sram) - 0x10;
+  _stack_pointer = .;
+
+  ASSERT(SIZEOF(.fsbl) + SIZEOF(.text) + SIZEOF(.rodata) + SIZEOF(.data)<= LENGTH(flash), "FLASH overflow!")
 }

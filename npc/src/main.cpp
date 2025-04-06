@@ -9,7 +9,7 @@ extern "C" void mem_write(vaddr_t addr, word_t data, char mask);
 extern "C" void npcTrapHandler();
 extern "C" void call_trace_diff();
 extern "C" void uncall_trace_diff();
-
+extern "C" void difftest_skip_ref();
 // ysyx SoC
 extern "C" void flash_read(int32_t addr, int32_t *data);
 extern "C" void mrom_read(int32_t addr, int32_t *data);

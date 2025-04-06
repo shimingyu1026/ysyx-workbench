@@ -59,7 +59,7 @@ void _printInfo()
       :                    // No input operands
       : /* No clobbers */  // No registers are clobbered
   );
-  printf("ysyx ASCII: 0x%x\n", mvendorid);
+  // printf("ysyx ASCII: 0x%x\n", mvendorid);
   uint32_t marchid;
   __asm__ volatile(
       "csrr %0, marchid"  // Read mvendorid into output operand
@@ -67,5 +67,6 @@ void _printInfo()
       :                   // No input operands
       : /* No clobbers */ // No registers are clobbered
   );
-  printf("ysyx_%d\n", marchid);
+  // printf("ysyx_%d\n", marchid);
+  putstr("ysyx\n");
 }

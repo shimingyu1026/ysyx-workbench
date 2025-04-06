@@ -293,4 +293,18 @@ class MMU extends Module {
 
 //-----------------------------------------------------------------------------------
   dontTouch(io.axi)
+
+  val skip_diff = Module(new skip_diff)
+  skip_diff.io.addr  := raddr
+  skip_diff.io.fire  := io.mmu_to_wbu.fire
+  skip_diff.io.valid := io.exu_to_mmu.bits.memValid
+}
+
+class skip_diff extends BlackBox {
+  val io = IO(new Bundle {
+    val addr  = Input(UInt(32.W))
+    val fire  = Input(Bool())
+    val valid = Input(Bool())
+  })
+  dontTouch(io)
 }

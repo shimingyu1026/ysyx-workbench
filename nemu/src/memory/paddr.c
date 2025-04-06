@@ -41,7 +41,6 @@ uint8_t *guest_to_host(paddr_t paddr)
   }
   if ((paddr >= 0x30000000) & (paddr <= 0x3fffffff))
   {
-    // printf("addr: %x\n", paddr);
     return flash + paddr - 0x30000000;
   }
 

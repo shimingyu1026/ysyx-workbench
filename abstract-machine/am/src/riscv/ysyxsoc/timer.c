@@ -1,12 +1,12 @@
 #include <am.h>
-
+#include <stdio.h>
 void __am_timer_init() {
 }
 
 void __am_timer_uptime(AM_TIMER_UPTIME_T *uptime) {
-  uint32_t high = *(volatile uint32_t *)(0xa0000048 + 4);
-  uint32_t low = *(volatile uint32_t *)(0xa0000048 );
-  uptime->us = ((uint64_t)high << 32) | low;  
+  uint32_t high = *(volatile uint32_t *)(0x2000004);
+  uint32_t low = *(volatile uint32_t *)(0x2000000);
+  uptime->us = (((uint64_t)high << 32) | low) >> 1;
 }
 
 void __am_timer_rtc(AM_TIMER_RTC_T *rtc) {

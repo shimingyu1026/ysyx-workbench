@@ -38,12 +38,12 @@ static void exec_once(CPU *cpu, VerilatedFstC *tfp, VerilatedContext *contextp)
     cpu->linst = *(vaddr_t *)cpu->inst;
     cpu->top->clock = 0;
     cpu->top->eval();
-    tfp->dump(contextp->time()); // dump wave
-    contextp->timeInc(1);        // 仿真时间推进
+    // tfp->dump(contextp->time()); // dump wave
+    // contextp->timeInc(1);        // 仿真时间推进
     cpu->top->clock = 1;
     cpu->top->eval();
-    tfp->dump(contextp->time()); // dump wave
-    contextp->timeInc(1);        // 仿真时间推进
+    // tfp->dump(contextp->time()); // dump wave
+    // contextp->timeInc(1);        // 仿真时间推进
 #ifdef CONFIG_ITRACE
     if (traceDiff)
     {

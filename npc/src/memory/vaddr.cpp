@@ -15,12 +15,12 @@ void vaddr_write(paddr_t addr, int len, word_t data)
 extern "C" void mem_write(vaddr_t addr, word_t data, char mask)
 {
 
-    if (addr == (0xa0000000 + 0x3f8))
-    {
-        IFDEF(CONFIG_DIFFTEST, difftest_skip_ref();)
-        printf("%c", (uint8_t)(data & 0xFF));
-        return;
-    }
+    // if (addr == (0xa0000000 + 0x3f8))
+    // {
+    //     IFDEF(CONFIG_DIFFTEST, difftest_skip_ref();)
+    //     printf("%c", (uint8_t)(data & 0xFF));
+    //     return;
+    // }
     // printf("mem_write: addr = %x, data = %x, mask = %x\n", addr, data, mask);
     uint8_t data_bytes[4] = {
         (uint8_t)(data & 0xFF),         // 最低字节
@@ -41,17 +41,17 @@ extern "C" void mem_write(vaddr_t addr, word_t data, char mask)
 extern "C" word_t mem_read(vaddr_t addr, int len)
 {
     uint64_t us = get_time();
-    if (addr == (0xa0000000 + 0x0000048) + 4)
-    {
-        IFDEF(CONFIG_DIFFTEST, difftest_skip_ref();)
-        us = get_time();
-        return us >> 32;
-    }
-    if (addr == (0xa0000000 + 0x0000048))
-    {
-        IFDEF(CONFIG_DIFFTEST, difftest_skip_ref();)
-        return (uint32_t)(us);
-    }
+    // if (addr == (0xa0000000 + 0x0000048) + 4)
+    // {
+    //     IFDEF(CONFIG_DIFFTEST, difftest_skip_ref();)
+    //     us = get_time();
+    //     return us >> 32;
+    // }
+    // if (addr == (0xa0000000 + 0x0000048))
+    // {
+    //     IFDEF(CONFIG_DIFFTEST, difftest_skip_ref();)
+    //     return (uint32_t)(us);
+    // }
 
     // printf("mem_read: addr = %x, len = %d, data= %x\n", addr, len, vaddr_read(addr & ~0x3u, len));
     return vaddr_read(addr & ~0x3u, len);

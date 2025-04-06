@@ -5,7 +5,7 @@
 #include <difftest-def.h>
 
 #ifdef CONFIG_DIFFTEST
-void difftest_skip_ref();
+// void difftest_skip_ref();
 void difftest_skip_dut(int nr_ref, int nr_dut);
 void difftest_step(vaddr_t pc, vaddr_t npc, CPU *cpu);
 #endif

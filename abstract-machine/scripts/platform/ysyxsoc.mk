@@ -1,4 +1,5 @@
-AM_SRCS := riscv/ysyxsoc/start.S \
+AM_SRCS := riscv/ysyxsoc/FSBL.S \
+           riscv/ysyxsoc/SSBL.S \
            riscv/ysyxsoc/trm.c \
            riscv/ysyxsoc/ioe.c \
            riscv/ysyxsoc/timer.c \
@@ -25,7 +26,13 @@ image: image-dep
 	@$(OBJDUMP) -d $(IMAGE).elf > $(IMAGE).txt
 #@$(OBJDUMP) -h $(IMAGE).elf
 	@echo + OBJCOPY "->" $(IMAGE_REL).bin
-	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents -O binary $(IMAGE).elf $(IMAGE).bin
+	@$(OBJCOPY) -S --set-section-flags .bss=alloc,contents \
+        --only-section=.fsbl \
+        --only-section=.ssbl \
+        --only-section=.text \
+        --only-section=.rodata \
+        --only-section=.data \
+        -O binary $(IMAGE).elf $(IMAGE).bin
 
 run: insert-arg
 	$(MAKE) -C $(NPC_HOME) ISA=$(ISA) sim IMG=$(IMAGE).bin

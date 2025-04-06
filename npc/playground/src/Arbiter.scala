@@ -40,6 +40,7 @@ class Arb extends Module {
 
     is(StateArbiter.sAXI2R) {
       when(io.axi_in_2.rready & io.axi_in_2.rvalid) {
+        // printf("arbiter select axi2r\n")
         state := StateArbiter.sIdle
       }
     }

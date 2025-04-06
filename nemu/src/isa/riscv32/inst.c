@@ -17,9 +17,12 @@
 #include <cpu/cpu.h>
 #include <cpu/ifetch.h>
 #include <cpu/decode.h>
+word_t mvendorid = 0x79737978;
+word_t marchid = 0x16f4771;
 static vaddr_t *csr_register(word_t imm)
 {
-        switch (imm)
+        // printf("csr_register: %x\n", imm & 0xfff);
+        switch (imm & 0xfff)
         {
         case 0x305:
                 return &cpu.csr.mtvec;
@@ -29,6 +32,10 @@ static vaddr_t *csr_register(word_t imm)
                 return &cpu.csr.mstatus;
         case 0x341:
                 return &cpu.csr.mepc;
+        case 0xf11:
+                return &mvendorid;
+        case 0xf12:
+                return &marchid;
         default:
                 return NULL;
         }

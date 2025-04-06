@@ -9,26 +9,19 @@ class ysyx_24070001 extends Module {
     val slave     = Flipped(new axi_full)
     val interrupt = Input(Bool())
 
-    // val inst_o  = Output(UInt(32.W))
-    // val pc_o    = Output(UInt(32.W))
-
-    // for verilator
-    // val regs = Output(Vec(32, UInt(32.W)))
   })
 
   val core    = Module(new core)
   val trap    = Module(new trap)
   val arbiter = Module(new Arb)
+  val xbar    = Module(new XBar)
+  val clint   = Module(new CLINT)
 
   core.io.axi_1 <> arbiter.io.axi_in_1
   core.io.axi_2 <> arbiter.io.axi_in_2
-  io.master <> arbiter.io.axi_out
-
-  // io.npcTrap := core.io.npcTrap
-  // io.inst_o  := core.io.inst_o
-  // io.pc_o    := core.io.pc_o
-
-  // io.regs := core.io.regs
+  xbar.io.axi_in <> arbiter.io.axi_out
+  clint.io.clint <> xbar.io.axi_out_2
+  io.master <> xbar.io.axi_out_1
 
   trap.io.npcTrap := core.io.npcTrap
   trap.io.clock   := clock

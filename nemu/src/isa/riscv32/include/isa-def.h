@@ -23,6 +23,8 @@ typedef struct
   vaddr_t mepc;
   word_t mstatus;
   word_t mtvec;
+  word_t mvendorid;
+  word_t marchid;
 } MUXDEF(CONFIG_RV64, riscv64_CSR, riscv32_CSR);
 typedef struct {
   word_t gpr[MUXDEF(CONFIG_RVE, 16, 32)];
